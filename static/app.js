@@ -2,15 +2,22 @@ const state = {
   session: null,
   scenarios: [],
   activeTab: "input",
-  lastMutation: null,
+  lastMutationReason: "",
 };
 
-const LEGACY_BASELINES = {
-  cpt_prep: { steps: 12, prepHours: 5.5 },
-  opt_initial_prep: { steps: 14, prepHours: 6.5 },
-  opt_stem_prep: { steps: 13, prepHours: 6.0 },
-  cap_gap_transition_prep: { steps: 16, prepHours: 7.0 },
-  f1_work_basics: { steps: 9, prepHours: 4.0 },
+const FIELD_LABELS = {
+  school_name: "School name",
+  status_type: "Current status",
+  program_stage: "Program stage",
+  employment_offer: "Employment offer",
+  employer_name: "Employer name",
+  work_start_date: "Work start date",
+  work_end_date: "Work end date",
+  graduation_date: "Graduation date",
+  petition_status: "Petition status",
+  documents_available: "Documents available",
+  work_location: "Work location",
+  major_program: "Major/program",
 };
 
 const els = {
@@ -18,7 +25,7 @@ const els = {
   panels: {
     input: document.getElementById("tab-input"),
     process: document.getElementById("tab-process"),
-    docs: document.getElementById("tab-docs"),
+    output: document.getElementById("tab-output"),
   },
 
   schoolLabel: document.getElementById("school_label"),
@@ -43,20 +50,15 @@ const els = {
   manualModeButtons: Array.from(document.querySelectorAll("[data-manual-mode]")),
   workflowSteps: document.getElementById("workflow_steps"),
 
-  understanding: document.getElementById("understanding"),
-  completeness: document.getElementById("completeness"),
-  escalationRisk: document.getElementById("escalation_risk"),
-  understandingBar: document.getElementById("understanding_bar"),
-  completenessBar: document.getElementById("completeness_bar"),
-  riskBar: document.getElementById("risk_bar"),
+  readinessBadge: document.getElementById("readiness_badge"),
+  reviewBadge: document.getElementById("review_badge"),
   adaptiveSurface: document.getElementById("adaptive_surface"),
-
-  transitionBridge: document.getElementById("transition_bridge"),
-  bridgeRow: document.getElementById("bridge_row"),
-  outcomeSummary: document.getElementById("outcome_summary"),
+  missingPreview: document.getElementById("missing_preview"),
 
   fields: Array.from(document.querySelectorAll(".case-field")),
   missingItems: document.getElementById("missing_items"),
+  finalChecklist: document.getElementById("final_checklist"),
+  advisorQuestions: document.getElementById("advisor_questions"),
   citations: document.getElementById("citations"),
   generatePacket: document.getElementById("generate_packet"),
   packetOutput: document.getElementById("packet_output"),
@@ -74,6 +76,7 @@ function bindEvents() {
   els.tabs.forEach((tab) => {
     tab.addEventListener("click", () => setTab(tab.dataset.tab));
   });
+
   els.startBtn.addEventListener("click", startSession);
   els.generatePacket.addEventListener("click", generatePacket);
 
@@ -155,10 +158,7 @@ async function startSession() {
 
   const data = await res.json();
   state.session = data.session;
-  state.lastMutation = {
-    new_mode: data.session.current_mode,
-    reason: "Workflow initialized from your input context.",
-  };
+  state.lastMutationReason = "Plan created from your context and situation.";
   render();
   setTab("process");
 }
@@ -174,7 +174,7 @@ async function sendEvent(eventType, payload = {}) {
 
   const data = await res.json();
   state.session = data.session;
-  state.lastMutation = data.mutation;
+  state.lastMutationReason = friendlyReason(data.mutation.reason);
   render();
 }
 
@@ -184,7 +184,7 @@ async function generatePacket() {
   if (!res.ok) return;
   const data = await res.json();
   els.packetOutput.textContent = data.packet_markdown;
-  setTab("docs");
+  setTab("output");
 }
 
 function render() {
@@ -200,16 +200,12 @@ function render() {
   renderDisambiguation(session.disambiguation_card);
   renderModes(session.current_mode);
 
-  renderScore(els.understanding, els.understandingBar, session.scores.understanding_score);
-  renderScore(els.completeness, els.completenessBar, session.scores.completeness_score);
-  renderScore(els.escalationRisk, els.riskBar, session.scores.escalation_risk);
-
   renderWorkflow(session.workflow || []);
-  renderGuidance(session);
-  renderOutcomes(session);
-  renderTransitionBridge(session);
-
-  renderMissingItems(session.missing_items || []);
+  renderStatusPanel(session);
+  renderMissingItems(session.missing_items || [], els.missingPreview);
+  renderMissingItems(session.missing_items || [], els.missingItems);
+  renderFinalChecklist(session);
+  renderAdvisorQuestions(session);
   renderCitations(session.citations || []);
   populateFields(session.fields || {});
 
@@ -221,15 +217,14 @@ function render() {
 function renderProgress(session) {
   const total = Math.max(1, (session.workflow || []).length);
   const done = (session.workflow || []).filter((step) => step.status === "complete").length;
-  const pct = Math.round((done / total) * 100);
-  els.progressText.textContent = `Progress: ${pct}% complete`;
+  els.progressText.textContent = `Progress: Step ${Math.min(done + 1, total)} of ${total}`;
 }
 
 function renderCandidateFlows(candidates, selectedFlowId) {
   els.candidateFlows.innerHTML = "";
   if (!candidates.length) {
     const li = document.createElement("li");
-    li.textContent = "No flow suggestions yet.";
+    li.textContent = "No suggestions yet.";
     els.candidateFlows.appendChild(li);
     return;
   }
@@ -238,12 +233,12 @@ function renderCandidateFlows(candidates, selectedFlowId) {
     const li = document.createElement("li");
     li.innerHTML = `
       <strong>${candidate.title}${candidate.flow_id === selectedFlowId ? " ✓" : ""}</strong>
-      <div class="muted">Confidence: ${candidate.score} (${candidate.reason})</div>
+      <div class="muted">${candidate.reason}</div>
     `;
-    const selectBtn = document.createElement("button");
-    selectBtn.textContent = "Use this flow";
-    selectBtn.addEventListener("click", () => sendEvent("select_flow", { flow_id: candidate.flow_id }));
-    li.appendChild(selectBtn);
+    const btn = document.createElement("button");
+    btn.textContent = "Use this path";
+    btn.addEventListener("click", () => sendEvent("select_flow", { flow_id: candidate.flow_id }));
+    li.appendChild(btn);
     els.candidateFlows.appendChild(li);
   }
 }
@@ -272,7 +267,7 @@ function renderDisambiguation(card) {
 }
 
 function renderModes(currentMode) {
-  els.currentModeChip.textContent = `Mode: ${humanMode(currentMode)}`;
+  els.currentModeChip.textContent = `View: ${humanMode(currentMode)}`;
   els.manualModeButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.manualMode === currentMode);
   });
@@ -289,10 +284,12 @@ function renderWorkflow(steps) {
 
   for (const step of steps) {
     const li = document.createElement("li");
+    const status = step.status === "complete" ? "✅" : step.status === "blocked" ? "⚠️" : "⏳";
     li.innerHTML = `
-      <strong>${step.title} (${step.status})</strong>
+      <strong>${status} ${step.title}</strong>
       <div class="muted">${step.description}</div>
     `;
+
     const row = document.createElement("div");
     row.className = "inline-actions";
 
@@ -302,94 +299,96 @@ function renderWorkflow(steps) {
       sendEvent(step.status === "complete" ? "unmark_step" : "mark_step", { step_id: step.step_id })
     );
     row.appendChild(toggle);
-
     li.appendChild(row);
     els.workflowSteps.appendChild(li);
   }
 }
 
-function renderGuidance(session) {
-  const missing = (session.missing_items || []).slice(0, 3).join(", ") || "none";
-  const next = (session.workflow || []).find((step) => step.status !== "complete");
-  const nextStep = next ? next.title : "Packet generation";
-  const why = state.lastMutation?.reason || "Using current readiness state.";
+function renderStatusPanel(session) {
+  const missing = session.missing_items || [];
+  const risk = Number(session.scores?.escalation_risk || 0);
+  const nextStep = (session.workflow || []).find((step) => step.status !== "complete");
 
+  let readinessText = "Needs Info";
+  let readinessClass = "needs";
+  if (!missing.length && risk < 60) {
+    readinessText = "Ready";
+    readinessClass = "ready";
+  } else if (risk >= 70) {
+    readinessText = "Needs Advisor Verification";
+    readinessClass = "verify";
+  }
+
+  els.readinessBadge.className = `badge ${readinessClass}`;
+  els.readinessBadge.textContent = readinessText;
+
+  els.reviewBadge.className = `badge neutral`;
+  els.reviewBadge.textContent = nextStep ? "In Progress" : "Packet Ready";
+
+  const why = state.lastMutationReason || "Guidance updated from your latest inputs.";
+  const next = nextStep ? nextStep.title : "Generate full prep packet";
   els.whyMode.textContent = why;
   els.adaptiveSurface.innerHTML = `
-    <p><strong>Why this mode:</strong> ${why}</p>
-    <p><strong>Next step:</strong> ${nextStep}</p>
-    <p><strong>Top missing items:</strong> ${missing}</p>
+    <p><strong>What changed:</strong> ${why}</p>
+    <p><strong>Next best step:</strong> ${next}</p>
+    <p><strong>Current focus:</strong> ${humanMode(session.current_mode)} view</p>
   `;
 }
 
-function renderOutcomes(session) {
-  if (!els.outcomeSummary) return;
-  const baseline = LEGACY_BASELINES[session.selected_flow_id] || LEGACY_BASELINES.f1_work_basics;
-  const dynamicSteps = Math.max(1, (session.workflow || []).length);
-  const completed = (session.workflow || []).filter((step) => step.status === "complete").length;
-  const unresolved = (session.missing_items || []).length;
-  const reduced = Math.max(0, baseline.steps - dynamicSteps);
-  const prepHours = Math.max(1.5, baseline.prepHours - reduced * 0.25);
-
-  els.outcomeSummary.innerHTML = "";
-  [
-    `Routed to: ${session.selected_flow_title}`,
-    `Steps reduced vs legacy: ${reduced} (${baseline.steps} -> ${dynamicSteps})`,
-    `Readiness now: ${session.scores.completeness_score}%`,
-    `Missing blockers detected early: ${unresolved}`,
-    `Estimated prep effort: ${prepHours.toFixed(1)}h (legacy ${baseline.prepHours.toFixed(1)}h)`,
-    `Workflow completion: ${completed}/${dynamicSteps}`,
-  ].forEach((line) => {
-    const li = document.createElement("li");
-    li.textContent = line;
-    els.outcomeSummary.appendChild(li);
-  });
-}
-
-function renderTransitionBridge(session) {
-  const show = session.selected_flow_id === "cap_gap_transition_prep" || session.current_mode === "transition";
-  if (!show) {
-    els.transitionBridge.classList.add("hidden");
-    els.bridgeRow.innerHTML = "";
-    return;
-  }
-  els.transitionBridge.classList.remove("hidden");
-
-  const status = String(session.fields.status_type || "").toLowerCase();
-  const petition = String(session.fields.petition_status || "").toLowerCase();
-  const steps = [
-    { label: "Current", detail: status || "missing", done: Boolean(status) },
-    { label: "Cap Gap Bridge", detail: petition || "verify petition", done: Boolean(petition && petition !== "unknown") },
-    {
-      label: "Transition Prep",
-      detail: session.scores.escalation_risk >= 70 ? "advisor review needed" : "handoff ready",
-      done: session.scores.completeness_score >= 70,
-    },
-  ];
-
-  els.bridgeRow.innerHTML = steps
-    .map(
-      (step) => `
-      <div class="bridge-step ${step.done ? "done" : ""}">
-        <strong>${step.label}</strong>
-        <span>${step.detail}</span>
-      </div>`
-    )
-    .join('<span class="bridge-arrow">-></span>');
-}
-
-function renderMissingItems(missing) {
-  els.missingItems.innerHTML = "";
+function renderMissingItems(missing, targetEl) {
+  targetEl.innerHTML = "";
   if (!missing.length) {
     const li = document.createElement("li");
-    li.textContent = "No missing required items.";
-    els.missingItems.appendChild(li);
+    li.textContent = "Nothing missing right now.";
+    targetEl.appendChild(li);
     return;
   }
   for (const item of missing) {
     const li = document.createElement("li");
-    li.textContent = item;
-    els.missingItems.appendChild(li);
+    li.textContent = humanField(item);
+    targetEl.appendChild(li);
+  }
+}
+
+function renderFinalChecklist(session) {
+  const items = session.workflow || [];
+  els.finalChecklist.innerHTML = "";
+  if (!items.length) {
+    const li = document.createElement("li");
+    li.textContent = "No checklist yet.";
+    els.finalChecklist.appendChild(li);
+    return;
+  }
+
+  for (const step of items) {
+    const li = document.createElement("li");
+    li.textContent = `${step.status === "complete" ? "[x]" : "[ ]"} ${step.title}`;
+    els.finalChecklist.appendChild(li);
+  }
+}
+
+function renderAdvisorQuestions(session) {
+  els.advisorQuestions.innerHTML = "";
+  const missing = session.missing_items || [];
+  const questions = [
+    "Which parts of this plan should I verify with my international office?",
+    "Are any timeline assumptions in this case incorrect?",
+  ];
+
+  if (missing.includes("employer_name")) {
+    questions.push("What exact employer details are required before review?");
+  }
+  if (missing.includes("petition_status")) {
+    questions.push("What petition status proof should I provide?");
+  }
+  if (session.selected_flow_id === "cap_gap_transition_prep") {
+    questions.push("Can we confirm my transition timing and bridge eligibility?");
+  }
+
+  for (const q of questions) {
+    const li = document.createElement("li");
+    li.textContent = q;
+    els.advisorQuestions.appendChild(li);
   }
 }
 
@@ -425,14 +424,25 @@ function populateFields(values) {
   }
 }
 
-function renderScore(valueEl, barEl, value) {
-  const n = Math.max(0, Math.min(100, Number(value || 0)));
-  valueEl.textContent = `${n}%`;
-  barEl.style.width = `${n}%`;
-}
-
 function humanMode(mode) {
   return String(mode || "checklist")
     .replaceAll("_", " ")
     .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function humanField(field) {
+  return FIELD_LABELS[field] || String(field || "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function friendlyReason(reason) {
+  const text = String(reason || "");
+  if (text.includes("Completeness still low")) return "I still need a few details, so I kept this in a simple checklist.";
+  if (text.includes("Understanding dropped")) return "This looked confusing, so I switched to a clearer explanation view.";
+  if (text.includes("Escalation risk is high")) return "Some parts need advisor verification before proceeding.";
+  if (text.includes("Transition flow needs petition-state clarity")) return "I need petition details to safely continue this transition path.";
+  if (text.includes("Mode locked")) return "Keeping the view you selected.";
+  if (text.includes("No mode change needed")) return "Your current plan looks stable, so no view change was needed.";
+  return text || "Guidance updated from your latest inputs.";
 }

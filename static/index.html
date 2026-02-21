@@ -16,12 +16,12 @@
     <header class="header">
       <div>
         <h1>VisaFlow OS</h1>
-        <p>Adaptive visa workflow prep for any school (CPT, OPT, Cap Gap/H-1B transition)</p>
+        <p>Adaptive visa workflow prep for any school</p>
       </div>
       <div class="header-meta">
         <span id="school_label">School: not set</span>
         <span id="flow_label">Flow: not started</span>
-        <span id="progress_text">Progress: 0% complete</span>
+        <span id="progress_text">Progress: Step 0 of 0</span>
       </div>
     </header>
 
@@ -29,7 +29,7 @@
       <nav class="tabs">
         <button class="tab active" data-tab="input">1. Input</button>
         <button class="tab" data-tab="process">2. Process</button>
-        <button class="tab" data-tab="docs">3. Docs Prep</button>
+        <button class="tab" data-tab="output">3. Output</button>
       </nav>
 
       <section class="tab-panel active" id="tab-input">
@@ -70,13 +70,13 @@
               </label>
             </div>
 
-            <h2>Step 2: Situation</h2>
+            <h2>Step 2: Your Situation</h2>
             <label>
               Describe your case in plain language
               <textarea id="intent" rows="5">I am an international student and got an internship, but I do not know whether I need CPT or OPT.</textarea>
             </label>
 
-            <button id="start_btn" class="primary">Generate My Workflow</button>
+            <button id="start_btn" class="primary">Generate My Plan</button>
           </article>
 
           <article class="card">
@@ -87,7 +87,7 @@
             <ul id="candidate_flows" class="list"></ul>
 
             <div id="disambiguation_card" class="hint hidden">
-              <h3>Disambiguation</h3>
+              <h3>Choose Your Path</h3>
               <p id="disambiguation_prompt"></p>
               <div id="disambiguation_options" class="chip-wrap"></div>
             </div>
@@ -98,8 +98,8 @@
       <section class="tab-panel" id="tab-process">
         <div class="process-top">
           <div class="mode-summary">
-            <span class="chip solid" id="current_mode_chip">Mode: checklist</span>
-            <span class="muted" id="why_mode">Waiting for workflow...</span>
+            <span class="chip solid" id="current_mode_chip">View: Checklist</span>
+            <span class="muted" id="why_mode">We will guide you with the simplest next step.</span>
           </div>
           <div class="mode-row">
             <button class="mode-pill" data-manual-mode="checklist">Checklist</button>
@@ -110,57 +110,25 @@
 
         <div class="grid-2 process-grid">
           <article class="card">
-            <h2>Your Workflow</h2>
+            <h2>Your Steps</h2>
             <ul id="workflow_steps" class="list"></ul>
           </article>
 
           <article class="card">
-            <h2>Readiness</h2>
-            <div class="metrics metrics-3">
-              <div class="metric">
-                <span>Understanding</span>
-                <strong id="understanding">0%</strong>
-                <div class="meter"><span id="understanding_bar"></span></div>
-              </div>
-              <div class="metric">
-                <span>Completeness</span>
-                <strong id="completeness">0%</strong>
-                <div class="meter"><span id="completeness_bar"></span></div>
-              </div>
-              <div class="metric risk">
-                <span>Escalation Risk</span>
-                <strong id="escalation_risk">0%</strong>
-                <div class="meter"><span id="risk_bar"></span></div>
-              </div>
+            <h2>What To Do Next</h2>
+            <div class="status-row">
+              <span id="readiness_badge" class="badge needs">Needs Info</span>
+              <span id="review_badge" class="badge neutral">In Progress</span>
             </div>
-
             <div id="adaptive_surface" class="surface"></div>
 
-            <div class="bridge hidden" id="transition_bridge">
-              <h3>Transition Bridge (Cap Gap / H-1B)</h3>
-              <div class="bridge-row" id="bridge_row"></div>
-            </div>
-          </article>
-        </div>
-
-        <div class="grid-2 compare-grid">
-          <article class="card legacy-card">
-            <h2>Legacy Portal (Before)</h2>
-            <ul class="list compact">
-              <li>Static forms and dense instructions</li>
-              <li>No routing for CPT vs OPT vs transition</li>
-              <li>No live completeness or risk signal</li>
-              <li>Advisor handoff often incomplete</li>
-            </ul>
-          </article>
-          <article class="card outcomes-card">
-            <h2>VisaFlow Adaptive (After)</h2>
-            <ul id="outcome_summary" class="list compact"></ul>
+            <h3>Missing Before Advisor Review</h3>
+            <ul id="missing_preview" class="list compact"></ul>
           </article>
         </div>
       </section>
 
-      <section class="tab-panel" id="tab-docs">
+      <section class="tab-panel" id="tab-output">
         <div class="grid-2">
           <article class="card">
             <h2>Required Details</h2>
@@ -177,16 +145,22 @@
               <label>Documents Available <input data-field="documents_available" class="case-field" placeholder="i20, passport, offer_letter" /></label>
             </div>
 
-            <h3>Missing Required Items</h3>
+            <h3>Still Needed</h3>
             <ul id="missing_items" class="list"></ul>
           </article>
 
           <article class="card">
-            <h2>References & Packet</h2>
-            <p class="muted">Uses USCIS references by default. School-specific sources are shown only when school context matches.</p>
+            <h2>Full Output</h2>
+            <h3>Personalized Checklist</h3>
+            <ul id="final_checklist" class="list compact"></ul>
+
+            <h3>Questions To Ask Advisor</h3>
+            <ul id="advisor_questions" class="list compact"></ul>
+
+            <h3>References</h3>
             <ul id="citations" class="list compact"></ul>
 
-            <button id="generate_packet" class="primary">Generate Advisor Packet</button>
+            <button id="generate_packet" class="primary">Generate Full Prep Packet</button>
             <pre id="packet_output"></pre>
           </article>
         </div>
