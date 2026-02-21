@@ -13,24 +13,33 @@ def compute_missing_items(required_fields: list[str], field_values: dict[str, st
 
 
 def refresh_workflow_step_statuses(workflow: list[WorkflowStep], field_values: dict[str, str]) -> None:
-    completed: set[str] = set()
+    step_map = {step.step_id: step for step in workflow}
 
+    # Flow packs are authored in dependency order for this MVP.
     for step in workflow:
-        if step.dependencies and not all(dep in completed for dep in step.dependencies):
+        deps_satisfied = all(
+            step_map[dep].status == StepStatus.complete
+            for dep in step.dependencies
+            if dep in step_map
+        )
+        if not deps_satisfied:
             step.status = StepStatus.blocked
             continue
 
-        if not step.required_fields:
-            if step.status != StepStatus.complete:
-                step.status = StepStatus.pending
-            else:
-                completed.add(step.step_id)
+        if step.manually_completed:
+            step.status = StepStatus.complete
             continue
 
-        is_ready = all(str(field_values.get(field, "")).strip() for field in step.required_fields)
-        step.status = StepStatus.complete if is_ready else StepStatus.pending
-        if step.status == StepStatus.complete:
-            completed.add(step.step_id)
+        if not step.required_fields:
+            if step.status == StepStatus.blocked:
+                step.status = StepStatus.pending
+            continue
+
+        has_required_values = all(
+            str(field_values.get(field, "")).strip()
+            for field in step.required_fields
+        )
+        step.status = StepStatus.complete if has_required_values else StepStatus.pending
 
 
 def sync_graph_from_workflow(case_graph: CaseGraph, workflow: list[WorkflowStep]) -> None:
@@ -41,8 +50,8 @@ def sync_graph_from_workflow(case_graph: CaseGraph, workflow: list[WorkflowStep]
 
 
 def mark_step(workflow: list[WorkflowStep], step_id: str, complete: bool) -> None:
-    target = StepStatus.complete if complete else StepStatus.pending
     for step in workflow:
         if step.step_id == step_id:
-            step.status = target
+            step.manually_completed = complete
+            step.status = StepStatus.complete if complete else StepStatus.pending
             break

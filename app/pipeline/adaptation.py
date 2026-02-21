@@ -1,82 +1,84 @@
 from __future__ import annotations
 
-from app.models import AdaptationEvent, InterfaceMode, SessionState, UIMutation
+from app.models import AdaptationEvent, EventType, InterfaceMode, SessionState, UIMutation
 
 
-CRITICAL_FIELDS = {
-    "employer_name",
-    "work_start_date",
-    "status_type",
-    "program_stage",
-}
+def compute_adaptation(
+    session: SessionState,
+    trigger_event: EventType | None = None,
+) -> UIMutation:
+    previous_mode = session.current_mode
 
+    if trigger_event == EventType.mode_change:
+        session.manual_mode_events_remaining = 3
+        return UIMutation(
+            new_mode=session.current_mode,
+            reason="Mode locked to user selection for the next few interactions.",
+            ui_changes=["Pinned user-selected mode"],
+        )
 
-def compute_adaptation(session: SessionState) -> UIMutation:
-    prev_mode = session.current_mode
-    scores = session.scores
+    if session.manual_mode_events_remaining > 0:
+        session.manual_mode_events_remaining -= 1
+        if session.scores.escalation_risk < 85:
+            return UIMutation(
+                new_mode=session.current_mode,
+                reason=(
+                    "Respecting user-selected mode while continuing to update scores and checklist."
+                ),
+                ui_changes=[],
+            )
 
-    missing_critical = [
-        field for field in CRITICAL_FIELDS if not str(session.fields.get(field, "")).strip()
-    ]
-
-    target_mode = prev_mode
-    reason = "No major adaptation needed."
+    target_mode = previous_mode
+    reason = "No mode change needed."
     ui_changes: list[str] = []
 
-    if scores.escalation_risk >= 72:
+    if session.scores.escalation_risk >= 85:
         target_mode = InterfaceMode.advisor
-        reason = "Escalation risk is high; switched to advisor handoff mode."
+        reason = "Escalation risk is high; switched to advisor mode."
         ui_changes = [
             "Pinned escalation checklist",
-            "Surfaced advisor/attorney questions",
-            "Collapsed non-critical sections",
+            "Elevated handoff questions",
         ]
-    elif session.selected_flow_id == "cap_gap_transition_prep" and not str(session.fields.get("petition_status", "")).strip():
+    elif (
+        session.selected_flow_id == "cap_gap_transition_prep"
+        and not str(session.fields.get("petition_status", "")).strip()
+    ):
         target_mode = InterfaceMode.transition
-        reason = "Transition context needs petition-state clarification; switched to transition view."
+        reason = "Transition flow needs petition-state clarity; switched to transition mode."
         ui_changes = [
-            "Enabled status-bridge timeline",
-            "Highlighted petition-status dependency",
-            "Prioritized transition verification tasks",
+            "Expanded bridge timeline",
+            "Highlighted petition dependencies",
         ]
-    elif scores.understanding_score < 56 or (session.profile.stress_level >= 4 and scores.understanding_score < 70):
+    elif session.scores.understanding_score < 55:
         target_mode = InterfaceMode.explain
-        reason = "Understanding dropped; switched to explain-first guidance."
+        reason = "Understanding dropped; switched to explain mode."
         ui_changes = [
-            "Simplified language",
-            "Expanded dependency hints",
+            "Expanded plain-language hints",
             "Promoted micro-check guidance",
         ]
-    elif len(missing_critical) >= 2 and scores.completeness_score < 72:
+    elif session.scores.completeness_score < 45 and len(session.missing_items) >= 3:
         target_mode = InterfaceMode.doc_prep
-        reason = "Critical fields missing; switched to document prep mode."
+        reason = "Readiness is low with multiple missing entities; switched to doc prep mode."
         ui_changes = [
-            "Pinned missing critical fields",
-            "Grouped checklist tasks by dependency",
-            "Added handoff preparation prompts",
+            "Pinned missing required entities",
+            "Grouped required steps by dependency",
         ]
-    elif scores.completeness_score < 72:
+    elif session.scores.completeness_score < 72:
         target_mode = InterfaceMode.checklist
-        reason = "Completeness low; prioritized checklist execution."
-        ui_changes = [
-            "Sorted incomplete steps to top",
-            "Promoted quick field capture cards",
-        ]
-    elif scores.clarity_score >= 78 and scores.completeness_score >= 72:
+        reason = "Completeness still low; prioritized checklist mode."
+        ui_changes = ["Sorted unresolved steps first"]
+    elif session.scores.clarity_score >= 74 and session.scores.completeness_score >= 72:
         target_mode = InterfaceMode.timeline
-        reason = "User stable; switched to timeline planning mode."
-        ui_changes = [
-            "Expanded date-dependent nodes",
-            "Collapsed low-signal guidance text",
-        ]
+        reason = "Clarity and completeness are stable; switched to timeline mode."
+        ui_changes = ["Expanded date-dependent planning steps"]
 
     session.current_mode = target_mode
 
-    if target_mode != prev_mode:
+    if target_mode != previous_mode:
         session.adaptation_log.append(
             AdaptationEvent(
                 reason=reason,
-                from_mode=prev_mode,
+                from_mode=previous_mode,
                 to_mode=target_mode,
                 ui_changes=ui_changes,
             )

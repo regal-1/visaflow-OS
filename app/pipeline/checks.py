@@ -7,6 +7,14 @@ from app.models import MicroCheck, MicroCheckResult, SessionState
 
 
 SHARED_CHECKS_PATH = Path("data/shared/micro_checks.json")
+GENERIC_FIELDS = [
+    "status_type",
+    "program_stage",
+    "employment_offer",
+    "employer_name",
+    "work_start_date",
+    "documents_available",
+]
 
 
 def _load_shared_checks() -> dict[str, MicroCheck]:
@@ -31,15 +39,7 @@ def build_micro_checks(session: SessionState) -> list[MicroCheck]:
     checks.append(_build_missing_item_check(session))
 
     if session.disambiguation_card is not None:
-        checks.append(
-            MicroCheck(
-                check_id="flow_disambiguation_check",
-                prompt="Which specialized flow should you confirm next?",
-                options=session.disambiguation_card.options,
-                correct_option=session.disambiguation_card.options[0],
-                explanation="Choose the top matching flow first, then verify with advisor when uncertain.",
-            )
-        )
+        checks.append(_build_disambiguation_check(session))
 
     return checks
 
@@ -75,19 +75,49 @@ def evaluate_micro_check(
 
 
 def _build_missing_item_check(session: SessionState) -> MicroCheck:
-    missing = session.missing_items or ["status_type", "program_stage"]
+    missing = session.missing_items or ["status_type"]
     top_missing = missing[0]
-    options = [
-        top_missing,
-        "ui_theme_color",
-        "profile_avatar",
-        "notification_sound",
-    ]
+
+    distractors: list[str] = []
+    for field in session.required_entities + GENERIC_FIELDS:
+        if field != top_missing and field not in missing and field not in distractors:
+            distractors.append(field)
+        if len(distractors) >= 3:
+            break
+
+    while len(distractors) < 3:
+        fallback = GENERIC_FIELDS[len(distractors) % len(GENERIC_FIELDS)]
+        if fallback != top_missing and fallback not in distractors:
+            distractors.append(fallback)
+
+    options = [top_missing] + distractors
 
     return MicroCheck(
         check_id="missing_item_check",
-        prompt="Which missing item is currently the top blocker to readiness?",
+        prompt="Which unresolved item is currently the top blocker to readiness?",
         options=options,
         correct_option=top_missing,
-        explanation="The top unresolved required entity should be resolved first.",
+        explanation="Resolve the highest-priority missing required entity first.",
     )
+
+
+def _build_disambiguation_check(session: SessionState) -> MicroCheck:
+    parsed_options = [_parse_option(option) for option in session.disambiguation_card.options]
+    labels = [label for _, label in parsed_options]
+    correct_label = labels[0] if labels else "Top ranked flow"
+
+    return MicroCheck(
+        check_id="flow_disambiguation_check",
+        prompt="Which route should you confirm first based on current context?",
+        options=labels,
+        correct_option=correct_label,
+        explanation="Start with the highest-ranked route, then validate assumptions with an advisor.",
+    )
+
+
+def _parse_option(raw: str) -> tuple[str, str]:
+    if "|" not in raw:
+        value = raw.strip()
+        return value, value
+    left, right = raw.split("|", 1)
+    return left.strip(), right.strip()

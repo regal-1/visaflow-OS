@@ -60,6 +60,7 @@ class WorkflowStep(BaseModel):
     required_fields: list[str] = Field(default_factory=list)
     dependencies: list[str] = Field(default_factory=list)
     status: StepStatus = StepStatus.pending
+    manually_completed: bool = False
     source_ids: list[str] = Field(default_factory=list)
 
 
@@ -145,6 +146,7 @@ class SessionState(BaseModel):
     selected_flow_id: str = ""
     selected_flow_title: str = ""
     scenario: str
+    flow_locked: bool = False
     candidate_flows: list[FlowCandidate] = Field(default_factory=list)
     ambiguity_flags: list[str] = Field(default_factory=list)
     disambiguation_card: Optional[DisambiguationCard] = None
@@ -164,6 +166,7 @@ class SessionState(BaseModel):
     active_check_ids: list[str] = Field(default_factory=list)
     available_micro_checks: list[MicroCheck] = Field(default_factory=list)
     events: list[UserEvent] = Field(default_factory=list)
+    manual_mode_events_remaining: int = Field(default=0, ge=0)
     adaptation_log: list[AdaptationEvent] = Field(default_factory=list)
     micro_checks: dict[str, MicroCheckResult] = Field(default_factory=dict)
 

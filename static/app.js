@@ -4,6 +4,15 @@ const state = {
   eventLog: [],
   selectedNodeId: null,
   activeTab: "input",
+  lastMutation: null,
+};
+
+const LEGACY_BASELINES = {
+  cpt_prep: { steps: 12, prepHours: 5.5 },
+  opt_initial_prep: { steps: 14, prepHours: 6.5 },
+  opt_stem_prep: { steps: 13, prepHours: 6.0 },
+  cap_gap_transition_prep: { steps: 16, prepHours: 7.0 },
+  f1_work_basics: { steps: 9, prepHours: 4.0 },
 };
 
 const els = {
@@ -53,6 +62,10 @@ const els = {
 
   graphSvg: document.getElementById("graph_svg"),
   graphLegend: document.getElementById("graph_legend"),
+
+  outcomeSummary: document.getElementById("outcome_summary"),
+  transitionBridge: document.getElementById("transition_bridge"),
+  bridgeRow: document.getElementById("bridge_row"),
 
   fields: Array.from(document.querySelectorAll(".case-field")),
   missingItems: document.getElementById("missing_items"),
@@ -188,6 +201,10 @@ async function startSession() {
   const data = await res.json();
   state.session = data.session;
   state.selectedNodeId = null;
+  state.lastMutation = {
+    new_mode: data.session.current_mode,
+    reason: "Session initialized from your preferred mode.",
+  };
 
   addEvent("Session started", "success");
   render();
@@ -210,6 +227,7 @@ async function sendEvent(eventType, payload = {}) {
 
   const data = await res.json();
   state.session = data.session;
+  state.lastMutation = data.mutation;
 
   const summary = eventType === "field_update"
     ? `Updated ${payload.field}`
@@ -217,9 +235,9 @@ async function sendEvent(eventType, payload = {}) {
       ? `Selected flow ${payload.flow_id}`
       : eventType === "mode_change"
         ? `Mode changed to ${payload.mode}`
-        : eventType;
+      : eventType;
 
-  addEvent(`${summary} -> ${data.mutation.new_mode}`, "info");
+  addEvent(`${summary} -> ${data.mutation.new_mode} | ${data.mutation.reason}`, "info");
   render();
 }
 
@@ -239,6 +257,7 @@ async function answerMicroCheck(checkId, selectedOption) {
 
   const data = await res.json();
   state.session = data.session;
+  state.lastMutation = data.mutation;
   addEvent(`Micro-check ${checkId}: ${data.result.is_correct ? "correct" : "incorrect"}`, data.result.is_correct ? "success" : "warn");
   render();
 }
@@ -292,6 +311,7 @@ function render() {
   renderMissingItems(session.missing_items || []);
   renderCitations(session.citations || []);
   renderGraph(session.case_graph || { nodes: [], edges: [] });
+  renderOutcomes(session);
   renderAdaptationLog(session.adaptation_log || []);
   renderEventStream();
   populateFields(session.fields || {});
@@ -329,13 +349,92 @@ function renderModes(currentMode) {
 function renderAdaptiveSurface(session) {
   const scene = MODE_SCENE[session.current_mode] || MODE_SCENE.checklist;
   const missing = (session.missing_items || []).slice(0, 4).join(", ") || "none";
+  const nextStep = (session.workflow || []).find((step) => step.status !== "complete");
+  const nextStepLabel = nextStep ? nextStep.title : "All workflow steps complete";
+  const reason = state.lastMutation?.reason || "Mode selected based on your current readiness state.";
 
   els.adaptiveSurface.innerHTML = `
     <h3>${scene.title}</h3>
     <p>${scene.copy}</p>
-    <p>Missing required entities: ${missing}</p>
+    <p><strong>Why this mode:</strong> ${reason}</p>
+    <p><strong>Next best action:</strong> ${nextStepLabel}</p>
+    <p><strong>Missing required entities:</strong> ${missing}</p>
     <div class="chip-wrap">${scene.tags.map((tag) => `<span class="chip">${tag}</span>`).join("")}</div>
   `;
+}
+
+function renderOutcomes(session) {
+  if (!els.outcomeSummary) return;
+
+  const baseline = LEGACY_BASELINES[session.selected_flow_id] || LEGACY_BASELINES.f1_work_basics;
+  const dynamicSteps = (session.workflow || []).length || 1;
+  const completedSteps = (session.workflow || []).filter((step) => step.status === "complete").length;
+  const unresolved = (session.missing_items || []).length;
+  const stepsReduced = Math.max(0, baseline.steps - dynamicSteps);
+  const readinessDelta = Math.max(0, session.scores.completeness_score - 30);
+  const estPrepHours = Math.max(1.5, baseline.prepHours - (stepsReduced * 0.25) - (readinessDelta * 0.01));
+
+  els.outcomeSummary.innerHTML = "";
+  const lines = [
+    `Routed flow: ${session.selected_flow_title}`,
+    `Flow steps reduced vs legacy: ${stepsReduced} (${baseline.steps} -> ${dynamicSteps})`,
+    `Live readiness: ${session.scores.completeness_score}% complete`,
+    `Understanding score: ${session.scores.understanding_score}%`,
+    `Missing blockers caught before advisor handoff: ${unresolved}`,
+    `Estimated prep time: ~${estPrepHours.toFixed(1)}h (legacy ~${baseline.prepHours.toFixed(1)}h)`,
+    `Completed workflow nodes: ${completedSteps}/${dynamicSteps}`,
+  ];
+  for (const line of lines) {
+    const li = document.createElement("li");
+    li.textContent = line;
+    els.outcomeSummary.appendChild(li);
+  }
+
+  renderTransitionBridge(session);
+}
+
+function renderTransitionBridge(session) {
+  if (!els.transitionBridge || !els.bridgeRow) return;
+  const isTransition = session.selected_flow_id === "cap_gap_transition_prep" || session.current_mode === "transition";
+  if (!isTransition) {
+    els.transitionBridge.classList.add("hidden");
+    els.bridgeRow.innerHTML = "";
+    return;
+  }
+
+  els.transitionBridge.classList.remove("hidden");
+  const statusValue = String(session.fields.status_type || "").toLowerCase();
+  const petitionValue = String(session.fields.petition_status || "").toLowerCase();
+  const isBridgeKnown = petitionValue && petitionValue !== "unknown";
+
+  const phases = [
+    {
+      label: "Current Status",
+      detail: statusValue || "missing",
+      done: Boolean(statusValue),
+    },
+    {
+      label: "Cap Gap Bridge",
+      detail: isBridgeKnown ? petitionValue : "verify petition state",
+      done: isBridgeKnown,
+    },
+    {
+      label: "H-1B Transition Prep",
+      detail: session.scores.escalation_risk >= 70 ? "advisor review required" : "handoff packet ready",
+      done: session.scores.completeness_score >= 70,
+    },
+  ];
+
+  els.bridgeRow.innerHTML = phases
+    .map(
+      (phase) => `
+        <div class="bridge-step ${phase.done ? "done" : ""}">
+          <strong>${phase.label}</strong>
+          <span>${phase.detail}</span>
+        </div>
+      `
+    )
+    .join('<span class="bridge-arrow">-></span>');
 }
 
 function renderWorkflowSteps(steps, mode) {

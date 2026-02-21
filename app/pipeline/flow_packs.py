@@ -10,6 +10,9 @@ from pydantic import BaseModel, Field
 from app.models import CaseGraph, CaseGraphEdge, CaseGraphNode, FlowCandidate, StepStatus, WorkflowStep
 
 
+TOKEN_RE = re.compile(r"[a-zA-Z0-9\-_/]{2,}")
+
+
 class FlowAppliesIf(BaseModel):
     keywords_any: list[str] = Field(default_factory=list)
     status_any: list[str] = Field(default_factory=list)
@@ -40,17 +43,24 @@ class FlowPack(BaseModel):
     disclaimer: str = "Workflow preparation assistant only. Not legal advice."
 
 
-_STATUS_PATTERNS = [
+STATUS_PATTERNS = [
     (re.compile(r"\bstem opt\b", re.I), "stem_opt"),
     (re.compile(r"\bopt\b", re.I), "opt"),
     (re.compile(r"\bf-?1\b", re.I), "f1"),
 ]
 
-_STAGE_PATTERNS = [
-    (re.compile(r"\benrolled|current student|this quarter|this semester\b", re.I), "enrolled"),
-    (re.compile(r"\bgraduating|senior|last quarter\b", re.I), "graduating"),
+STAGE_PATTERNS = [
+    (re.compile(r"\benrolled|current student|this quarter|this semester|while studying\b", re.I), "enrolled"),
+    (re.compile(r"\bgraduating|graduation|final quarter|about to graduate\b", re.I), "graduating"),
     (re.compile(r"\bgraduated|alumni\b", re.I), "graduated"),
-    (re.compile(r"\bworking|job|internship started\b", re.I), "working"),
+    (re.compile(r"\bworking|already working|currently employed\b", re.I), "working"),
+]
+
+PETITION_PATTERNS = [
+    (re.compile(r"\bfiled|submitted|registered\b", re.I), "filed"),
+    (re.compile(r"\bpending|waiting|processing\b", re.I), "pending"),
+    (re.compile(r"\bapproved|selected\b", re.I), "approved_or_selected"),
+    (re.compile(r"\brejected|denied|not selected\b", re.I), "denied_or_not_selected"),
 ]
 
 
@@ -76,33 +86,68 @@ class FlowPackStore:
     def list(self) -> list[FlowPack]:
         return list(self._packs.values())
 
-    def rank(self, intent: str, fields: Optional[dict[str, str]] = None) -> tuple[list[FlowCandidate], list[str], dict[str, str]]:
+    def rank(
+        self,
+        intent: str,
+        fields: Optional[dict[str, str]] = None,
+    ) -> tuple[list[FlowCandidate], list[str], dict[str, str]]:
         fields = fields or {}
         entities = extract_entities(intent=intent, fields=fields)
         text = intent.lower()
+        tokens = _tokenize(intent)
+        explicit_cpt_opt_ambiguity = "cpt" in text and "opt" in text
 
         candidates: list[FlowCandidate] = []
         ambiguity_flags: list[str] = []
 
         for pack in self.list():
             score = 0.0
-            matched_terms: list[str] = []
+            reasons: list[str] = []
 
-            for term in pack.applies_if.keywords_any:
-                if term.lower() in text:
-                    score += 1.4
-                    matched_terms.append(term)
+            keyword_hits = _keyword_hits(text=text, tokens=tokens, keywords=pack.applies_if.keywords_any)
+            if keyword_hits:
+                score += 1.4 * len(keyword_hits)
+                reasons.append(f"keywords: {', '.join(keyword_hits[:3])}")
 
-            if entities.get("status_type") and entities["status_type"] in pack.applies_if.status_any:
-                score += 1.2
-            if entities.get("program_stage") and entities["program_stage"] in pack.applies_if.program_stage_any:
-                score += 1.2
+            status = entities.get("status_type")
+            if status and pack.applies_if.status_any:
+                normalized_statuses = {_normalize_value(v) for v in pack.applies_if.status_any}
+                if _normalize_value(status) in normalized_statuses:
+                    score += 1.8
+                    reasons.append("status match")
+                else:
+                    score -= 0.6
 
-            if fields.get("petition_status") and "cap_gap" in pack.flow_id:
-                score += 1.0
+            stage = entities.get("program_stage")
+            if stage and pack.applies_if.program_stage_any:
+                normalized_stages = {_normalize_value(v) for v in pack.applies_if.program_stage_any}
+                if _normalize_value(stage) in normalized_stages:
+                    score += 1.6
+                    reasons.append("program stage match")
+                else:
+                    score -= 0.6
 
-            if score > 0:
-                reason = "Matched: " + ", ".join(matched_terms[:3]) if matched_terms else "Matched context signals"
+            if pack.flow_id == "cap_gap_transition_prep" and (
+                "h-1b" in text or "h1b" in text or "cap gap" in text or entities.get("petition_status")
+            ):
+                score += 2.2
+                reasons.append("transition petition signal")
+
+            if pack.flow_id == "cpt_prep" and ("internship" in text or stage == "enrolled"):
+                score += 0.9
+
+            if pack.flow_id == "opt_initial_prep" and ("opt" in text or stage in {"graduating", "graduated"}):
+                score += 0.9
+
+            if explicit_cpt_opt_ambiguity:
+                if pack.flow_id == "f1_work_basics":
+                    score += 3.0
+                    reasons.append("explicit CPT/OPT ambiguity")
+                if pack.flow_id in {"cpt_prep", "opt_initial_prep"}:
+                    score -= 1.2
+
+            if score >= 0.6:
+                reason = "; ".join(reasons[:2]) if reasons else "general intent fit"
                 candidates.append(
                     FlowCandidate(
                         flow_id=pack.flow_id,
@@ -117,27 +162,30 @@ class FlowPackStore:
         if not candidates:
             fallback = self.get("f1_work_basics")
             if fallback:
-                candidates.append(
+                candidates = [
                     FlowCandidate(
                         flow_id=fallback.flow_id,
                         title=fallback.title,
-                        score=0.1,
-                        reason="Fallback orientation flow for ambiguous intent",
+                        score=0.2,
+                        reason="fallback orientation flow",
                     )
-                )
+                ]
                 ambiguity_flags.append("no_direct_match")
 
         if len(candidates) >= 2:
-            gap = candidates[0].score - candidates[1].score
-            if gap < 1.6:
+            if (candidates[0].score - candidates[1].score) < 1.1:
                 ambiguity_flags.append("top_flows_close")
 
-        if "cpt" in text and "opt" in text:
+        candidate_ids = {c.flow_id for c in candidates[:3]}
+        if "cpt_prep" in candidate_ids and "opt_initial_prep" in candidate_ids and not entities.get("program_stage"):
             ambiguity_flags.append("cpt_opt_overlap")
 
-        if entities.get("program_stage") is None:
+        if candidates and candidates[0].score < 2.0:
+            ambiguity_flags.append("low_confidence_route")
+
+        if not entities.get("program_stage"):
             ambiguity_flags.append("program_stage_unclear")
-        if entities.get("status_type") is None:
+        if not entities.get("status_type"):
             ambiguity_flags.append("status_unclear")
 
         return candidates, sorted(set(ambiguity_flags)), entities
@@ -145,24 +193,45 @@ class FlowPackStore:
 
 def extract_entities(intent: str, fields: Optional[dict[str, str]] = None) -> dict[str, str]:
     fields = fields or {}
-    entities: dict[str, str] = {}
     text = intent.lower()
+    entities: dict[str, str] = {}
 
-    for pattern, status in _STATUS_PATTERNS:
-        if pattern.search(text):
-            entities["status_type"] = status
-            break
+    for key in (
+        "status_type",
+        "program_stage",
+        "petition_status",
+        "employment_offer",
+        "employer_name",
+        "work_start_date",
+        "work_end_date",
+        "graduation_date",
+    ):
+        value = str(fields.get(key, "")).strip()
+        if value:
+            entities[key] = value
 
-    for pattern, stage in _STAGE_PATTERNS:
-        if pattern.search(text):
-            entities["program_stage"] = stage
-            break
+    if "status_type" not in entities:
+        for pattern, status in STATUS_PATTERNS:
+            if pattern.search(text):
+                entities["status_type"] = status
+                break
 
-    if "h-1b" in text or "h1b" in text or "cap gap" in text:
-        entities["petition_status"] = fields.get("petition_status", "filed_or_planned")
+    if "program_stage" not in entities:
+        for pattern, stage in STAGE_PATTERNS:
+            if pattern.search(text):
+                entities["program_stage"] = stage
+                break
 
-    if "internship" in text or "offer" in text or "job" in text:
-        entities["employment_offer"] = fields.get("employment_offer", "yes")
+    if "petition_status" not in entities and ("h-1b" in text or "h1b" in text or "cap gap" in text):
+        entities["petition_status"] = "unknown"
+        for pattern, value in PETITION_PATTERNS:
+            if pattern.search(text):
+                entities["petition_status"] = value
+                break
+
+    if "employment_offer" not in entities:
+        if re.search(r"\binternship|offer|job|employment\b", text, re.I):
+            entities["employment_offer"] = "yes"
 
     return entities
 
@@ -199,17 +268,38 @@ def build_case_graph(pack: FlowPack) -> CaseGraph:
 
 
 def graph_to_workflow(graph: CaseGraph) -> list[WorkflowStep]:
-    steps: list[WorkflowStep] = []
-    for node in graph.nodes:
-        steps.append(
-            WorkflowStep(
-                step_id=node.node_id,
-                title=node.title,
-                description=node.description,
-                node_type=node.node_type,
-                required_fields=node.required_fields,
-                dependencies=node.dependencies,
-                status=node.status,
-            )
+    return [
+        WorkflowStep(
+            step_id=node.node_id,
+            title=node.title,
+            description=node.description,
+            node_type=node.node_type,
+            required_fields=node.required_fields,
+            dependencies=node.dependencies,
+            status=node.status,
         )
-    return steps
+        for node in graph.nodes
+    ]
+
+
+def _tokenize(text: str) -> set[str]:
+    return {token.lower() for token in TOKEN_RE.findall(text)}
+
+
+def _keyword_hits(text: str, tokens: set[str], keywords: list[str]) -> list[str]:
+    hits: list[str] = []
+    lowered = text.lower()
+    for raw in keywords:
+        kw = raw.lower().strip()
+        if not kw:
+            continue
+        if " " in kw:
+            if kw in lowered:
+                hits.append(raw)
+        elif kw in tokens:
+            hits.append(raw)
+    return hits
+
+
+def _normalize_value(value: str) -> str:
+    return value.strip().lower().replace("-", "_")

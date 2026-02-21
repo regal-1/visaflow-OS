@@ -1,24 +1,27 @@
-# VisaFlow OS (Advanced End-to-End MVP)
+# VisaFlow OS (Simplified, Adaptive, End-to-End)
 
-VisaFlow OS is an adaptive interface engine for high-stakes immigration workflow preparation.
+VisaFlow OS is a dynamic interface engine for high-friction immigration workflow preparation.
 
-## What this build now includes
-- Multi-flow routing with flow packs (`CPT`, `Initial OPT`, `STEM OPT`, `Cap Gap/H-1B transition`, `F-1 basics`).
-- Disambiguation card when intent maps to multiple likely flows.
-- Case graph runtime (`nodes` + `dependencies`) rendered as an interactive adaptive canvas.
-- Real-time metric loop: `understanding`, `clarity`, `completeness`, `escalation risk`.
-- Adaptive interface modes: `checklist`, `timeline`, `explain`, `doc_prep`, `transition`, `advisor`.
-- Live event stream + adaptation timeline.
-- Advisor packet generation with citation context.
+## First-principles pipeline
+`Intent -> Flow Router -> Case Graph -> Readiness Scoring -> Adaptive Mode -> Advisor Packet`
 
-## Data and sources
-- Flow packs: `data/flows/*.json`
-- Shared controls/checks: `data/shared/*.json`
-- Scenario presets: `data/scenarios/demo_cases.json`
-- Source map (UCSD + USCIS): `app/data/source_map.json`
-- Built retrieval index: `data/knowledge_chunks.json`
+## What this version ships
+- Deterministic multi-flow router (`F-1 basics`, `CPT`, `Initial OPT`, `STEM OPT`, `Cap Gap/H-1B transition`).
+- Stable disambiguation for ambiguous inputs (especially CPT vs OPT).
+- Case graph + workflow statuses (`pending`, `blocked`, `complete`) with dependency logic.
+- Live scores: `understanding`, `clarity`, `completeness`, `escalation risk`.
+- Bounded adaptation loop with user mode lock (manual mode changes are respected).
+- Micro-check system tied to active flow + current missing blockers.
+- Advisor packet generation with source citations (UCSD + USCIS grounding).
 
-## Important disclaimer
+## Data & source layout
+- Flow packs: `/Users/arunimaanand/Downloads/Hackathon Compiled/data/flows/*.json`
+- Shared checks/glossary/docs: `/Users/arunimaanand/Downloads/Hackathon Compiled/data/shared/*.json`
+- Demo scenarios: `/Users/arunimaanand/Downloads/Hackathon Compiled/data/scenarios/demo_cases.json`
+- Source map: `/Users/arunimaanand/Downloads/Hackathon Compiled/app/data/source_map.json`
+- Retrieval chunks: `/Users/arunimaanand/Downloads/Hackathon Compiled/data/knowledge_chunks.json`
+
+## Disclaimer
 This is a workflow-preparation and comprehension assistant. It is **not legal advice**.
 
 ## Quick start
@@ -33,7 +36,7 @@ uvicorn app.main:app --reload
 
 Open: `http://127.0.0.1:8000`
 
-## API
+## API surface
 - `GET /api/health`
 - `GET /api/sources`
 - `GET /api/flows`
@@ -44,10 +47,10 @@ Open: `http://127.0.0.1:8000`
 - `POST /api/session/{session_id}/micro-check`
 - `POST /api/session/{session_id}/packet`
 
-## Recommended live demo sequence
-1. Launch with ambiguous scenario preset (`CPT or OPT`).
-2. Show flow ranking + disambiguation selection.
-3. Show case graph adaptation and click node to reopen step.
-4. Trigger confusion/help event and show mode shift + score changes.
-5. Run micro-check and show feedback loop.
-6. Generate advisor packet with sources.
+## Demo path (clean and judge-friendly)
+1. Start with ambiguous intent (`CPT or OPT`).
+2. Show candidate flows + disambiguation card.
+3. Fill 2-3 required fields and show score movement.
+4. Trigger one confusion event and show adaptive mode reaction.
+5. Run one micro-check.
+6. Generate advisor packet.

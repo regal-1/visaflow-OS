@@ -226,6 +226,19 @@ button.primary {
   margin-top: 0.6rem;
 }
 
+.compare-grid {
+  margin-top: 0.6rem;
+}
+
+.legacy-card {
+  border-color: #815e3a;
+  background: linear-gradient(165deg, #1e222b 0%, #1a202a 100%);
+}
+
+.outcomes-card {
+  border-color: #2b5f7f;
+}
+
 .mode-row {
   display: flex;
   flex-wrap: wrap;
@@ -312,6 +325,52 @@ button.primary {
   margin: 0.5rem 0;
 }
 
+.bridge {
+  margin-top: 0.55rem;
+  border: 1px solid #355b79;
+  border-radius: 10px;
+  padding: 0.48rem;
+  background: #0e1f31;
+}
+
+.bridge-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.28rem;
+  margin-top: 0.35rem;
+}
+
+.bridge-step {
+  flex: 1;
+  border: 1px solid #395b7a;
+  border-radius: 9px;
+  background: #10293f;
+  padding: 0.35rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.bridge-step.done {
+  border-color: #2fa479;
+  background: #10342c;
+}
+
+.bridge-step strong {
+  font-size: 0.74rem;
+}
+
+.bridge-step span {
+  color: #c8deef;
+  font-size: 0.72rem;
+}
+
+.bridge-arrow {
+  color: #8dbad7;
+  display: grid;
+  place-items: center;
+  font-size: 0.74rem;
+}
+
 .advanced {
   margin-top: 0.6rem;
   border: 1px solid #3a5d7d;
@@ -386,6 +445,14 @@ button.primary {
   .form-grid,
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .bridge-row {
+    flex-direction: column;
+  }
+
+  .bridge-arrow {
+    transform: rotate(90deg);
   }
 
   .header {
