@@ -1,0 +1,76 @@
+{
+  "flow_id": "opt_initial_prep",
+  "title": "Initial OPT Preparation",
+  "description": "Preparation flow for graduating/graduated F-1 students planning initial OPT steps.",
+  "applies_if": {
+    "keywords_any": ["opt", "post-completion", "i-765", "ead", "graduating"],
+    "status_any": ["f1", "f-1"],
+    "program_stage_any": ["graduating", "graduated"]
+  },
+  "required_entities": [
+    "status_type",
+    "program_stage",
+    "school_name",
+    "major_program",
+    "graduation_date",
+    "employment_offer",
+    "work_start_date"
+  ],
+  "step_nodes": [
+    {
+      "node_id": "opt-intake",
+      "node_type": "intake_summary",
+      "title": "OPT Context Intake",
+      "description": "Capture status, graduation timing, and current work plan.",
+      "required_fields": ["status_type", "program_stage", "graduation_date"],
+      "dependencies": []
+    },
+    {
+      "node_id": "opt-pathway",
+      "node_type": "status_check",
+      "title": "Pathway Clarification",
+      "description": "Clarify initial OPT vs other pathways and identify unknowns.",
+      "required_fields": ["employment_offer", "work_start_date"],
+      "dependencies": ["opt-intake"]
+    },
+    {
+      "node_id": "opt-docs",
+      "node_type": "document_checklist",
+      "title": "I-765 Preparation Checklist",
+      "description": "Track docs and prerequisites for advisor-ready preparation.",
+      "required_fields": ["documents_available"],
+      "dependencies": ["opt-pathway"]
+    },
+    {
+      "node_id": "opt-microcheck",
+      "node_type": "micro_check",
+      "title": "Timeline Comprehension Check",
+      "description": "Validate understanding of timing-sensitive steps.",
+      "required_fields": [],
+      "dependencies": ["opt-docs"]
+    },
+    {
+      "node_id": "opt-packet",
+      "node_type": "packet_preview",
+      "title": "Advisor Packet",
+      "description": "Generate summary, missing requirements, and advisor questions.",
+      "required_fields": [],
+      "dependencies": ["opt-microcheck"]
+    }
+  ],
+  "doc_requirements": ["i20", "passport", "i94", "employment_verification"],
+  "common_confusions": [
+    "What is the difference between pre-completion and post-completion OPT?",
+    "Do I need employer details now or later?"
+  ],
+  "micro_checks": ["approval_before_work"],
+  "warnings": [
+    "Avoid assumptions about eligibility; confirm with advisor.",
+    "Use USCIS and school guidance for final requirements."
+  ],
+  "handoff_rules": [
+    "Escalate when dates or status fields conflict.",
+    "Escalate if user requests legal eligibility conclusions."
+  ],
+  "disclaimer": "Workflow preparation assistant only. Not legal advice."
+}

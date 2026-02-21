@@ -1,0 +1,12 @@
+{
+  "doc_types": [
+    "passport",
+    "i20",
+    "i94",
+    "internship_offer_letter",
+    "employment_verification",
+    "ead_card",
+    "h1b_receipt_notice",
+    "sevis_record"
+  ]
+}

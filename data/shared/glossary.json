@@ -1,0 +1,29 @@
+{
+  "terms": [
+    {
+      "key": "cpt",
+      "label": "Curricular Practical Training (CPT)",
+      "description": "Work authorization for eligible F-1 students while enrolled in a degree program."
+    },
+    {
+      "key": "opt",
+      "label": "Optional Practical Training (OPT)",
+      "description": "Temporary employment authorization for eligible F-1 students in their field of study."
+    },
+    {
+      "key": "stem_opt",
+      "label": "STEM OPT Extension",
+      "description": "Additional OPT period for eligible STEM degree holders meeting program rules."
+    },
+    {
+      "key": "cap_gap",
+      "label": "Cap Gap",
+      "description": "Bridge period that may extend eligible F-1 status/work authorization when H-1B change of status is timely filed."
+    },
+    {
+      "key": "h1b",
+      "label": "H-1B",
+      "description": "Employer-sponsored nonimmigrant classification for specialty occupations."
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "form_id": "legacy-student-work-auth-v2",
+  "title": "Student Work Authorization Portal v2",
+  "sections": [
+    "Read all policies",
+    "Choose category",
+    "Fill full form",
+    "Upload evidence",
+    "Submit"
+  ],
+  "problems": [
+    "No dependency map",
+    "No confusion detection",
+    "Static instructions"
+  ]
+}
