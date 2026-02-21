@@ -176,6 +176,7 @@ class SessionState(BaseModel):
 class StartSessionRequest(BaseModel):
     intent: str = Field(min_length=10, max_length=5000)
     profile: SessionProfile = Field(default_factory=SessionProfile)
+    initial_fields: dict[str, str] = Field(default_factory=dict)
 
 
 class StartSessionResponse(BaseModel):

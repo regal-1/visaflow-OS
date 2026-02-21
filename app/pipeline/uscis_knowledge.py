@@ -27,7 +27,13 @@ class USCISKnowledgeBase:
         raw_chunks = payload.get("chunks", [])
         self._chunks = [SourceChunk(**chunk) for chunk in raw_chunks]
 
-    def retrieve(self, query: str, top_k: int = 5, flow_id: str = "") -> list[Citation]:
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 5,
+        flow_id: str = "",
+        include_ucsd: bool = False,
+    ) -> list[Citation]:
         if not self._chunks:
             return []
 
@@ -37,6 +43,8 @@ class USCISKnowledgeBase:
 
         scored: list[tuple[float, SourceChunk]] = []
         for chunk in self._chunks:
+            if chunk.source_type == "ucsd_iseo" and not include_ucsd:
+                continue
             score = self._score(query_tokens, chunk.text)
             if flow_id and flow_id in chunk.flows:
                 score += 1.3

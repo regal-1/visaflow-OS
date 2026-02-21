@@ -3,16 +3,17 @@
 VisaFlow OS is a dynamic interface engine for high-friction immigration workflow preparation.
 
 ## First-principles pipeline
-`Intent -> Flow Router -> Case Graph -> Readiness Scoring -> Adaptive Mode -> Advisor Packet`
+`Context (school + status + stage) -> Intent -> Flow Router -> Workflow -> Readiness Scoring -> Adaptive Mode -> Advisor Packet`
 
 ## What this version ships
 - Deterministic multi-flow router (`F-1 basics`, `CPT`, `Initial OPT`, `STEM OPT`, `Cap Gap/H-1B transition`).
+- School-aware intake as the first step (no UCSD assumption).
 - Stable disambiguation for ambiguous inputs (especially CPT vs OPT).
-- Case graph + workflow statuses (`pending`, `blocked`, `complete`) with dependency logic.
-- Live scores: `understanding`, `clarity`, `completeness`, `escalation risk`.
+- Workflow statuses (`pending`, `blocked`, `complete`) with dependency logic.
+- Live scores: `understanding`, `completeness`, `escalation risk`.
 - Bounded adaptation loop with user mode lock (manual mode changes are respected).
-- Micro-check system tied to active flow + current missing blockers.
-- Advisor packet generation with source citations (UCSD + USCIS grounding).
+- Advisor packet generation with source citations.
+- Source filtering behavior: USCIS by default, UCSD guidance only when school context is UCSD.
 
 ## Data & source layout
 - Flow packs: `/Users/arunimaanand/Downloads/Hackathon Compiled/data/flows/*.json`
@@ -41,7 +42,7 @@ Open: `http://127.0.0.1:8000`
 - `GET /api/sources`
 - `GET /api/flows`
 - `GET /api/scenarios`
-- `POST /api/session/start`
+- `POST /api/session/start` (`initial_fields` supported)
 - `GET /api/session/{session_id}`
 - `POST /api/session/{session_id}/event`
 - `POST /api/session/{session_id}/micro-check`
@@ -51,6 +52,6 @@ Open: `http://127.0.0.1:8000`
 1. Start with ambiguous intent (`CPT or OPT`).
 2. Show candidate flows + disambiguation card.
 3. Fill 2-3 required fields and show score movement.
-4. Trigger one confusion event and show adaptive mode reaction.
-5. Run one micro-check.
+4. Show mode reason + next step in Process tab.
+5. Show Before vs After outcomes.
 6. Generate advisor packet.

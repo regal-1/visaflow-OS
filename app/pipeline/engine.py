@@ -38,7 +38,15 @@ class PipelineEngine:
         self.flow_store = flow_store or FlowPackStore()
 
     def start_session(self, request: StartSessionRequest) -> tuple[SessionState, list[MicroCheck], UIMutation]:
-        candidates, flags, extracted = self.flow_store.rank(intent=request.intent, fields={})
+        initial_fields = {
+            key: str(value).strip()
+            for key, value in request.initial_fields.items()
+            if str(value).strip()
+        }
+        candidates, flags, extracted = self.flow_store.rank(
+            intent=request.intent,
+            fields=initial_fields,
+        )
         selected_flow_id = candidates[0].flow_id if candidates else "f1_work_basics"
         selected_pack = self._get_pack_or_fallback(selected_flow_id)
 
@@ -52,7 +60,7 @@ class PipelineEngine:
             current_mode=request.profile.preferred_mode,
             candidate_flows=candidates,
             ambiguity_flags=flags,
-            fields=self._entity_fields(extracted),
+            fields={**self._entity_fields(extracted), **initial_fields},
         )
 
         self._apply_pack_state(session, selected_pack, preserve_fields=True)
@@ -155,7 +163,15 @@ class PipelineEngine:
             query=self._citation_query(session),
             top_k=5,
             flow_id=session.selected_flow_id,
+            include_ucsd=self._should_include_ucsd_sources(session),
         )
+        if not session.citations:
+            session.citations = self.kb.retrieve(
+                query=self._citation_query(session),
+                top_k=5,
+                flow_id="",
+                include_ucsd=self._should_include_ucsd_sources(session),
+            )
         session.scores = recompute_scores(
             session=session,
             required_fields=session.required_entities,
@@ -219,11 +235,19 @@ class PipelineEngine:
 
     def _citation_query(self, session: SessionState) -> str:
         missing = ", ".join(session.missing_items[:3]) if session.missing_items else "no missing fields"
+        school = str(session.fields.get("school_name", "")).strip()
         return (
             f"{session.intent} {session.selected_flow_title} "
+            f"school: {school or 'unspecified'} "
             f"missing: {missing} "
             f"confusions: {'; '.join(session.ambiguity_flags[:2])}"
         )
+
+    def _should_include_ucsd_sources(self, session: SessionState) -> bool:
+        school = str(session.fields.get("school_name", "")).strip().lower()
+        if not school:
+            return False
+        return "ucsd" in school or "san diego" in school
 
     def _get_pack_or_fallback(self, flow_id: str) -> FlowPack:
         pack = self.flow_store.get(flow_id)

@@ -16,11 +16,11 @@
     <header class="header">
       <div>
         <h1>VisaFlow OS</h1>
-        <p>Adaptive workflow prep for CPT, OPT, and Cap Gap</p>
+        <p>Adaptive visa workflow prep for any school (CPT, OPT, Cap Gap/H-1B transition)</p>
       </div>
       <div class="header-meta">
-        <span id="scenario">Scenario: not started</span>
-        <span id="session_id">Session: -</span>
+        <span id="school_label">School: not set</span>
+        <span id="flow_label">Flow: not started</span>
         <span id="progress_text">Progress: 0% complete</span>
       </div>
     </header>
@@ -35,47 +35,48 @@
       <section class="tab-panel active" id="tab-input">
         <div class="grid-2">
           <article class="card">
-            <h2>Case Intake</h2>
-            <label>
-              Describe your situation
-              <textarea id="intent" rows="5">I'm an international student and I got an internship, but I don't know if I need CPT or OPT.</textarea>
-            </label>
-
+            <h2>Step 1: Context</h2>
             <div class="form-grid">
               <label>
-                Familiarity
-                <select id="familiarity">
-                  <option value="new">New</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
+                School / University
+                <input id="school_name_input" placeholder="UCLA, UCB, Cornell, Duke, Yale, etc." />
+              </label>
+              <label>
+                Current Status
+                <select id="status_type_input">
+                  <option value="">Select</option>
+                  <option value="f1">F-1</option>
+                  <option value="opt">OPT</option>
+                  <option value="stem_opt">STEM OPT</option>
                 </select>
               </label>
               <label>
-                Role
-                <select id="role">
-                  <option value="student">Student</option>
-                  <option value="caregiver">Caregiver</option>
-                  <option value="advisor_helper">Advisor Helper</option>
+                Program Stage
+                <select id="program_stage_input">
+                  <option value="">Select</option>
+                  <option value="enrolled">Enrolled</option>
+                  <option value="graduating">Graduating</option>
+                  <option value="graduated">Graduated</option>
+                  <option value="working">Working</option>
                 </select>
               </label>
               <label>
-                Preferred Mode
+                Preferred View
                 <select id="preferred_mode">
                   <option value="checklist">Checklist</option>
                   <option value="timeline">Timeline</option>
                   <option value="explain">Explain</option>
-                  <option value="doc_prep">Doc Prep</option>
-                  <option value="transition">Transition</option>
-                  <option value="advisor">Advisor</option>
                 </select>
-              </label>
-              <label>
-                Stress Level
-                <input id="stress_level" type="range" min="1" max="5" value="3" />
               </label>
             </div>
 
-            <button id="start_btn" class="primary">Start Adaptive Session</button>
+            <h2>Step 2: Situation</h2>
+            <label>
+              Describe your case in plain language
+              <textarea id="intent" rows="5">I am an international student and got an internship, but I do not know whether I need CPT or OPT.</textarea>
+            </label>
+
+            <button id="start_btn" class="primary">Generate My Workflow</button>
           </article>
 
           <article class="card">
@@ -86,7 +87,7 @@
             <ul id="candidate_flows" class="list"></ul>
 
             <div id="disambiguation_card" class="hint hidden">
-              <h3>Choose a Path</h3>
+              <h3>Disambiguation</h3>
               <p id="disambiguation_prompt"></p>
               <div id="disambiguation_options" class="chip-wrap"></div>
             </div>
@@ -95,27 +96,31 @@
       </section>
 
       <section class="tab-panel" id="tab-process">
-        <div class="mode-row" id="mode_row"></div>
+        <div class="process-top">
+          <div class="mode-summary">
+            <span class="chip solid" id="current_mode_chip">Mode: checklist</span>
+            <span class="muted" id="why_mode">Waiting for workflow...</span>
+          </div>
+          <div class="mode-row">
+            <button class="mode-pill" data-manual-mode="checklist">Checklist</button>
+            <button class="mode-pill" data-manual-mode="timeline">Timeline</button>
+            <button class="mode-pill" data-manual-mode="explain">Explain</button>
+          </div>
+        </div>
 
         <div class="grid-2 process-grid">
           <article class="card">
-            <h2>Workflow Steps</h2>
-            <p class="muted">Mode-aware view: checklist, timeline, or explain.</p>
+            <h2>Your Workflow</h2>
             <ul id="workflow_steps" class="list"></ul>
           </article>
 
           <article class="card">
-            <h2>Adaptive Guidance</h2>
-            <div class="metrics">
+            <h2>Readiness</h2>
+            <div class="metrics metrics-3">
               <div class="metric">
                 <span>Understanding</span>
                 <strong id="understanding">0%</strong>
                 <div class="meter"><span id="understanding_bar"></span></div>
-              </div>
-              <div class="metric">
-                <span>Clarity</span>
-                <strong id="clarity">0%</strong>
-                <div class="meter"><span id="clarity_bar"></span></div>
               </div>
               <div class="metric">
                 <span>Completeness</span>
@@ -131,75 +136,40 @@
 
             <div id="adaptive_surface" class="surface"></div>
 
-            <div class="action-row">
-              <button id="simulate_confusion">Simulate Inactivity</button>
-              <button id="ask_help">Simulate Help</button>
+            <div class="bridge hidden" id="transition_bridge">
+              <h3>Transition Bridge (Cap Gap / H-1B)</h3>
+              <div class="bridge-row" id="bridge_row"></div>
             </div>
-
-            <h3>Micro Checks</h3>
-            <div id="micro_checks"></div>
           </article>
         </div>
 
         <div class="grid-2 compare-grid">
           <article class="card legacy-card">
             <h2>Legacy Portal (Before)</h2>
-            <p class="muted">Static institutional workflow with no comprehension feedback loop.</p>
-            <ul id="legacy_snapshot" class="list compact">
-              <li>Single dense form with jargon-heavy instructions</li>
-              <li>No routing for CPT vs OPT vs transition context</li>
-              <li>No live completeness or understanding score</li>
-              <li>No adaptive mode switching on confusion signals</li>
-              <li>Advisor sees incomplete, unstructured handoff</li>
+            <ul class="list compact">
+              <li>Static forms and dense instructions</li>
+              <li>No routing for CPT vs OPT vs transition</li>
+              <li>No live completeness or risk signal</li>
+              <li>Advisor handoff often incomplete</li>
             </ul>
           </article>
-
           <article class="card outcomes-card">
             <h2>VisaFlow Adaptive (After)</h2>
-            <p class="muted">Dynamic interface engine with real-time adaptation and packet output.</p>
             <ul id="outcome_summary" class="list compact"></ul>
-
-            <div id="transition_bridge" class="bridge hidden">
-              <h3>Transition Bridge View</h3>
-              <p class="muted">Status handoff path for Cap Gap / H-1B transition preparation.</p>
-              <div class="bridge-row" id="bridge_row"></div>
-            </div>
           </article>
         </div>
-
-        <details class="advanced">
-          <summary>Advanced Insights (optional)</summary>
-          <div class="grid-2">
-            <article class="card">
-              <h3>Case Graph</h3>
-              <p class="muted">Click a node to reopen that step.</p>
-              <svg id="graph_svg" viewBox="0 0 920 360" preserveAspectRatio="xMidYMid meet"></svg>
-              <div id="graph_legend" class="chip-wrap"></div>
-            </article>
-
-            <article class="card">
-              <h3>Telemetry</h3>
-              <h4>Event Stream</h4>
-              <ul id="event_stream" class="list compact"></ul>
-              <h4>Adaptation Timeline</h4>
-              <ul id="adaptation_log" class="list compact"></ul>
-            </article>
-          </div>
-        </details>
       </section>
 
       <section class="tab-panel" id="tab-docs">
         <div class="grid-2">
           <article class="card">
-            <h2>Entity & Docs Capture</h2>
+            <h2>Required Details</h2>
             <div class="field-grid">
+              <label>School Name <input data-field="school_name" class="case-field" /></label>
               <label>Status Type <input data-field="status_type" class="case-field" placeholder="f1 / opt / stem_opt" /></label>
               <label>Program Stage <input data-field="program_stage" class="case-field" placeholder="enrolled / graduating / graduated / working" /></label>
-              <label>School Name <input data-field="school_name" class="case-field" /></label>
-              <label>Major Program <input data-field="major_program" class="case-field" /></label>
               <label>Employment Offer <input data-field="employment_offer" class="case-field" placeholder="yes/no" /></label>
               <label>Employer Name <input data-field="employer_name" class="case-field" /></label>
-              <label>Work Location <input data-field="work_location" class="case-field" /></label>
               <label>Work Start Date <input data-field="work_start_date" class="case-field" type="date" /></label>
               <label>Work End Date <input data-field="work_end_date" class="case-field" type="date" /></label>
               <label>Graduation Date <input data-field="graduation_date" class="case-field" type="date" /></label>
@@ -212,8 +182,8 @@
           </article>
 
           <article class="card">
-            <h2>Packet & Sources</h2>
-            <h3>Source Context (UCSD + USCIS)</h3>
+            <h2>References & Packet</h2>
+            <p class="muted">Uses USCIS references by default. School-specific sources are shown only when school context matches.</p>
             <ul id="citations" class="list compact"></ul>
 
             <button id="generate_packet" class="primary">Generate Advisor Packet</button>
