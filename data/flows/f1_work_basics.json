@@ -1,0 +1,39 @@
+{
+  "flow_id": "f1_work_basics",
+  "title": "F-1 Work Basics",
+  "description": "High-level orientation flow for students unsure which pathway applies.",
+  "applies_if": {
+    "keywords_any": ["f-1", "f1", "work authorization", "what paperwork", "where to start"],
+    "status_any": ["f1", "f-1"],
+    "program_stage_any": ["enrolled", "graduating", "graduated", "working"]
+  },
+  "required_entities": [
+    "status_type",
+    "program_stage",
+    "employment_offer"
+  ],
+  "step_nodes": [
+    {
+      "node_id": "basics-intake",
+      "node_type": "intake_summary",
+      "title": "Orientation Intake",
+      "description": "Capture enough context to route to the correct specialized flow.",
+      "required_fields": ["status_type", "program_stage", "employment_offer"],
+      "dependencies": []
+    },
+    {
+      "node_id": "basics-router",
+      "node_type": "dependency_alert",
+      "title": "Flow Disambiguation",
+      "description": "Present CPT/OPT/Transition options with minimal cognitive load.",
+      "required_fields": [],
+      "dependencies": ["basics-intake"]
+    }
+  ],
+  "doc_requirements": ["i20", "i94", "passport", "admission_letter"],
+  "common_confusions": ["Do I need CPT or OPT?", "What should I do first?"],
+  "micro_checks": ["dependency_employer_info"],
+  "warnings": ["Use this flow to orient; escalate for case-specific legal decisions."],
+  "handoff_rules": ["Route to specialized flow once core context is known."],
+  "disclaimer": "Workflow preparation assistant only. Not legal advice."
+}

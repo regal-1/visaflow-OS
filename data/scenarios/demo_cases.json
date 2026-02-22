@@ -1,0 +1,59 @@
+{
+  "scenarios": [
+    {
+      "scenario_id": "ucla_cpt_internship",
+      "label": "UCLA CPT Internship",
+      "intent": "I am an F-1 student at UCLA and just accepted a summer internship while I am still enrolled. I need help with CPT paperwork and advisor preparation.",
+      "initial_fields": {
+        "school_name": "UCLA",
+        "status_type": "f1",
+        "program_stage": "enrolled"
+      },
+      "expected_primary_flow": "cpt_prep"
+    },
+    {
+      "scenario_id": "cornell_initial_opt",
+      "label": "Cornell Initial OPT",
+      "intent": "I am graduating from Cornell this term and want to prepare my initial OPT application and I-765 checklist.",
+      "initial_fields": {
+        "school_name": "Cornell University",
+        "status_type": "f1",
+        "program_stage": "graduating"
+      },
+      "expected_primary_flow": "opt_initial_prep"
+    },
+    {
+      "scenario_id": "duke_cap_gap_transition",
+      "label": "Duke Cap Gap Transition",
+      "intent": "I am on STEM OPT at Duke and my employer filed H-1B. I need a clear transition prep workflow and advisor handoff packet.",
+      "initial_fields": {
+        "school_name": "Duke University",
+        "status_type": "stem_opt",
+        "program_stage": "working",
+        "petition_status": "filed"
+      },
+      "expected_primary_flow": "cap_gap_transition_prep"
+    },
+    {
+      "scenario_id": "ucb_cpt_or_opt_unclear",
+      "label": "UCB CPT vs OPT (Ambiguous)",
+      "intent": "I got an internship at UCB and I am confused whether this should be CPT or OPT. I need help deciding the right path.",
+      "initial_fields": {
+        "school_name": "UC Berkeley",
+        "status_type": "f1"
+      },
+      "expected_primary_flow": "f1_work_basics"
+    },
+    {
+      "scenario_id": "yale_opt_stem_extension",
+      "label": "Yale STEM OPT Extension",
+      "intent": "I graduated from Yale and I am on OPT with a job offer. I need a structured plan for STEM OPT extension preparation.",
+      "initial_fields": {
+        "school_name": "Yale University",
+        "status_type": "opt",
+        "program_stage": "working"
+      },
+      "expected_primary_flow": "opt_stem_prep"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "checks": [
+    {
+      "check_id": "dependency_employer_info",
+      "prompt": "Which item usually unlocks downstream authorization steps?",
+      "options": [
+        "Employer details",
+        "Dashboard color theme",
+        "Profile picture",
+        "Browser version"
+      ],
+      "correct_option": "Employer details",
+      "explanation": "Employer details are often prerequisite inputs in CPT/OPT-related preparation flows."
+    },
+    {
+      "check_id": "approval_before_work",
+      "prompt": "What should happen before starting work in high-stakes authorization workflows?",
+      "options": [
+        "Begin work first and fix paperwork later",
+        "Get required approval/authorization first",
+        "Only ask coworkers",
+        "Ignore timeline dependencies"
+      ],
+      "correct_option": "Get required approval/authorization first",
+      "explanation": "These workflows are timing-sensitive. Required approvals/authorizations should be verified first."
+    }
+  ]
+}

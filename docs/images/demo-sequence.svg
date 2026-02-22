@@ -1,0 +1,24 @@
+<svg width="1200" height="620" viewBox="0 0 1200 620" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="620" fill="#08172f"/>
+  <text x="50" y="70" fill="#e7f4ff" font-size="44" font-family="Inter, Arial" font-weight="700">90-Second Demo Sequence</text>
+
+  <g font-family="Inter, Arial" font-size="25" fill="#d6ebff">
+    <rect x="70" y="120" width="1060" height="70" rx="10" fill="#10345d" stroke="#3c7fb9"/>
+    <text x="95" y="165">1. Enter real student context (school, status, stage, dates, stress + intent)</text>
+
+    <rect x="70" y="205" width="1060" height="70" rx="10" fill="#10345d" stroke="#3c7fb9"/>
+    <text x="95" y="250">2. Route to flow (CPT / OPT / STEM OPT / Cap Gap-H-1B)</text>
+
+    <rect x="70" y="290" width="1060" height="70" rx="10" fill="#10345d" stroke="#3c7fb9"/>
+    <text x="95" y="335">3. Show Process tab: steps + missing items + next action</text>
+
+    <rect x="70" y="375" width="1060" height="70" rx="10" fill="#10345d" stroke="#3c7fb9"/>
+    <text x="95" y="420">4. Toggle docs checklist (I-20, I-94, offers) and timeline date shifts</text>
+
+    <rect x="70" y="460" width="1060" height="70" rx="10" fill="#10345d" stroke="#3c7fb9"/>
+    <text x="95" y="505">5. Switch to Explain mode (checklist + timeline + plain guidance)</text>
+
+    <rect x="70" y="545" width="1060" height="50" rx="10" fill="#123c67" stroke="#57c3ff"/>
+    <text x="95" y="578" fill="#8edbff">Workflow preparation assistant only. Not legal advice.</text>
+  </g>
+</svg>

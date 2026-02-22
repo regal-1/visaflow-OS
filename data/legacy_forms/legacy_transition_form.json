@@ -1,0 +1,15 @@
+{
+  "form_id": "legacy-transition-handoff",
+  "title": "Status Transition Request Form",
+  "sections": [
+    "Select current status",
+    "Enter petition details",
+    "Upload notices",
+    "Manual review queue"
+  ],
+  "problems": [
+    "Timeline complexity hidden",
+    "No bridge-period explanation",
+    "No escalation guidance"
+  ]
+}

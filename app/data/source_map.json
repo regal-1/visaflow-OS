@@ -1,0 +1,53 @@
+{
+  "sources": [
+    {
+      "id": "ucsd-cpt",
+      "title": "F-1 Curricular Practical Training (CPT)",
+      "url": "https://cpt.ucsd.edu/",
+      "source_type": "ucsd_iseo",
+      "flows": ["cpt_prep", "f1_work_basics"]
+    },
+    {
+      "id": "ucsd-opt-index",
+      "title": "F-1 Optional Practical Training (OPT)",
+      "url": "https://iseo.ucsd.edu/student-services/working-in-us/f1-opt/index.html",
+      "source_type": "ucsd_iseo",
+      "flows": ["opt_initial_prep", "opt_stem_prep", "cap_gap_transition_prep", "f1_work_basics"]
+    },
+    {
+      "id": "ucsd-cap-gap",
+      "title": "Cap Gap Extension",
+      "url": "https://iseo.ucsd.edu/student-services/working-in-us/f1-opt/cap-gap.html",
+      "source_type": "ucsd_iseo",
+      "flows": ["cap_gap_transition_prep"]
+    },
+    {
+      "id": "uscis-opt-f1",
+      "title": "Optional Practical Training (OPT) for F-1 Students",
+      "url": "https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students",
+      "source_type": "uscis",
+      "flows": ["opt_initial_prep", "opt_stem_prep"]
+    },
+    {
+      "id": "uscis-i765",
+      "title": "Form I-765, Application for Employment Authorization",
+      "url": "https://www.uscis.gov/i-765",
+      "source_type": "uscis",
+      "flows": ["opt_initial_prep", "opt_stem_prep"]
+    },
+    {
+      "id": "uscis-h1b",
+      "title": "H-1B Specialty Occupations",
+      "url": "https://www.uscis.gov/working-in-the-united-states/h-1b-specialty-occupations",
+      "source_type": "uscis",
+      "flows": ["cap_gap_transition_prep"]
+    },
+    {
+      "id": "uscis-employment-auth",
+      "title": "Employment Authorization",
+      "url": "https://www.uscis.gov/employment-authorization",
+      "source_type": "uscis",
+      "flows": ["f1_work_basics", "opt_initial_prep", "opt_stem_prep"]
+    }
+  ]
+}

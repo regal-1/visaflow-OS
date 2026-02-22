@@ -1,0 +1,65 @@
+{
+  "flow_id": "opt_stem_prep",
+  "title": "STEM OPT Preparation",
+  "description": "Preparation flow for STEM OPT extension planning and dependency checks.",
+  "applies_if": {
+    "keywords_any": ["stem opt", "opt extension", "extension", "i-983"],
+    "status_any": ["opt", "stem_opt", "f1", "f-1"],
+    "program_stage_any": ["graduated", "working"]
+  },
+  "required_entities": [
+    "status_type",
+    "major_program",
+    "employment_offer",
+    "employer_name",
+    "work_start_date",
+    "documents_available"
+  ],
+  "step_nodes": [
+    {
+      "node_id": "stem-intake",
+      "node_type": "intake_summary",
+      "title": "STEM Context Intake",
+      "description": "Capture status and extension context.",
+      "required_fields": ["status_type", "major_program"],
+      "dependencies": []
+    },
+    {
+      "node_id": "stem-employer",
+      "node_type": "structured_form",
+      "title": "Employer Verification Inputs",
+      "description": "Separate student-side and employer-side preparation details.",
+      "required_fields": ["employer_name", "work_start_date"],
+      "dependencies": ["stem-intake"]
+    },
+    {
+      "node_id": "stem-docs",
+      "node_type": "document_checklist",
+      "title": "Extension Checklist",
+      "description": "Prepare extension documentation and advisor verification items.",
+      "required_fields": ["documents_available"],
+      "dependencies": ["stem-employer"]
+    },
+    {
+      "node_id": "stem-packet",
+      "node_type": "packet_preview",
+      "title": "Advisor Packet",
+      "description": "Generate extension prep summary and unresolved dependencies.",
+      "required_fields": [],
+      "dependencies": ["stem-docs"]
+    }
+  ],
+  "doc_requirements": [
+    "i20",
+    "i94",
+    "ead_card",
+    "passport",
+    "employment_offer_letter",
+    "employment_verification"
+  ],
+  "common_confusions": ["What is student vs employer responsibility in extension prep?"],
+  "micro_checks": ["dependency_employer_info"],
+  "warnings": ["Verify extension-specific requirements with advisor before action."],
+  "handoff_rules": ["Escalate if employer compliance details are unknown."],
+  "disclaimer": "Workflow preparation assistant only. Not legal advice."
+}

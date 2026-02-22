@@ -1,0 +1,84 @@
+{
+  "flow_id": "cpt_prep",
+  "title": "CPT Preparation",
+  "description": "Preparation flow for enrolled F-1 students pursuing internship/work authorization planning during degree progress.",
+  "applies_if": {
+    "keywords_any": ["cpt", "internship", "co-op", "curricular practical training", "while enrolled"],
+    "status_any": ["f1", "f-1"],
+    "program_stage_any": ["enrolled"]
+  },
+  "required_entities": [
+    "status_type",
+    "program_stage",
+    "school_name",
+    "major_program",
+    "employment_offer",
+    "employer_name",
+    "work_start_date",
+    "work_location"
+  ],
+  "step_nodes": [
+    {
+      "node_id": "cpt-intake",
+      "node_type": "intake_summary",
+      "title": "Case Intake",
+      "description": "Collect student status, program stage, and internship context.",
+      "required_fields": ["status_type", "program_stage", "school_name"],
+      "dependencies": []
+    },
+    {
+      "node_id": "cpt-employer",
+      "node_type": "structured_form",
+      "title": "Employer Details",
+      "description": "Capture employer details that unlock downstream requirements.",
+      "required_fields": ["employer_name", "work_start_date", "work_location"],
+      "dependencies": ["cpt-intake"]
+    },
+    {
+      "node_id": "cpt-docs",
+      "node_type": "document_checklist",
+      "title": "Document Checklist",
+      "description": "Track required evidence before advisor review.",
+      "required_fields": ["documents_available"],
+      "dependencies": ["cpt-employer"]
+    },
+    {
+      "node_id": "cpt-microcheck",
+      "node_type": "micro_check",
+      "title": "Dependency Comprehension Check",
+      "description": "Check user understanding before packet generation.",
+      "required_fields": [],
+      "dependencies": ["cpt-docs"]
+    },
+    {
+      "node_id": "cpt-packet",
+      "node_type": "packet_preview",
+      "title": "Advisor Packet",
+      "description": "Generate case summary with missing items and advisor questions.",
+      "required_fields": [],
+      "dependencies": ["cpt-microcheck"]
+    }
+  ],
+  "doc_requirements": [
+    "i20",
+    "i94",
+    "passport",
+    "admission_letter",
+    "internship_offer_letter",
+    "employment_offer_letter"
+  ],
+  "common_confusions": [
+    "Can I start work before authorization is confirmed?",
+    "Do employer details matter before advisor review?"
+  ],
+  "micro_checks": ["dependency_employer_info", "approval_before_work"],
+  "warnings": [
+    "Do not treat this output as legal advice.",
+    "Timing and authorization constraints are high stakes; verify with your school office."
+  ],
+  "handoff_rules": [
+    "Escalate to advisor if status or timeline is unclear.",
+    "Escalate if required fields remain missing after adaptation."
+  ],
+  "disclaimer": "Workflow preparation assistant only. Not legal advice."
+}

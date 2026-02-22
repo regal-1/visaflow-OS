@@ -1,0 +1,82 @@
+{
+  "flow_id": "cap_gap_transition_prep",
+  "title": "Cap Gap / H-1B Transition Preparation",
+  "description": "Transition-oriented preparation flow for OPT/STEM users with H-1B petition context.",
+  "applies_if": {
+    "keywords_any": ["cap gap", "h-1b", "h1b", "petition", "transition", "change of status"],
+    "status_any": ["opt", "stem_opt", "f1", "f-1"],
+    "program_stage_any": ["working", "graduated"]
+  },
+  "required_entities": [
+    "status_type",
+    "petition_status",
+    "work_end_date",
+    "work_start_date",
+    "employer_name",
+    "documents_available"
+  ],
+  "step_nodes": [
+    {
+      "node_id": "cap-intake",
+      "node_type": "status_check",
+      "title": "Current Status Snapshot",
+      "description": "Capture current authorization status and petition state.",
+      "required_fields": ["status_type", "petition_status"],
+      "dependencies": []
+    },
+    {
+      "node_id": "cap-transition",
+      "node_type": "timeline_step",
+      "title": "Transition Timeline",
+      "description": "Map current status to transition period and next-state assumptions.",
+      "required_fields": ["work_end_date", "work_start_date"],
+      "dependencies": ["cap-intake"]
+    },
+    {
+      "node_id": "cap-docs",
+      "node_type": "document_checklist",
+      "title": "Transition Documentation",
+      "description": "Collect receipt/notice placeholders and advisor verification notes.",
+      "required_fields": ["documents_available", "employer_name"],
+      "dependencies": ["cap-transition"]
+    },
+    {
+      "node_id": "cap-warning",
+      "node_type": "warning",
+      "title": "Escalation Checkpoint",
+      "description": "Escalate if timeline or petition state is ambiguous.",
+      "required_fields": [],
+      "dependencies": ["cap-docs"]
+    },
+    {
+      "node_id": "cap-packet",
+      "node_type": "handoff_note",
+      "title": "Advisor / Attorney Handoff",
+      "description": "Generate transition handoff summary with verification checklist.",
+      "required_fields": [],
+      "dependencies": ["cap-warning"]
+    }
+  ],
+  "doc_requirements": [
+    "ead_card",
+    "h1b_receipt_notice",
+    "i20",
+    "i94",
+    "passport",
+    "employment_offer_letter"
+  ],
+  "common_confusions": [
+    "What does Cap Gap extend, and for whom?",
+    "What should be verified if petition state is unclear?"
+  ],
+  "micro_checks": ["approval_before_work"],
+  "warnings": [
+    "Transition cases may require advisor and attorney verification.",
+    "Do not rely on this interface as legal advice."
+  ],
+  "handoff_rules": [
+    "Always escalate if petition state is unknown.",
+    "Escalate when status timeline has conflicts or gaps."
+  ],
+  "disclaimer": "Workflow preparation assistant only. Not legal advice."
+}
