@@ -49,7 +49,14 @@
       "dependencies": ["stem-docs"]
     }
   ],
-  "doc_requirements": ["i20", "ead_card", "employment_verification"],
+  "doc_requirements": [
+    "i20",
+    "i94",
+    "ead_card",
+    "passport",
+    "employment_offer_letter",
+    "employment_verification"
+  ],
   "common_confusions": ["What is student vs employer responsibility in extension prep?"],
   "micro_checks": ["dependency_employer_info"],
   "warnings": ["Verify extension-specific requirements with advisor before action."],

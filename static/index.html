@@ -16,41 +16,46 @@
     <header class="header shell">
       <div>
         <h1>VisaFlow OS</h1>
-        <p>Adaptive workflow prep for CPT, OPT, STEM OPT, and Cap Gap/H-1B transition</p>
+        <p>Adaptive visa workflow prep for any school</p>
       </div>
       <div class="header-meta">
         <span id="school_label">School: not set</span>
-        <span id="flow_label">Path: not started</span>
+        <span id="flow_label">Flow: not started</span>
         <span id="progress_text">Progress: Step 0 of 0</span>
       </div>
     </header>
 
     <main class="shell">
       <nav class="tabs" aria-label="Workflow Sections">
-        <button class="tab active" data-tab="input">1. Intake</button>
-        <button class="tab" data-tab="process">2. Plan</button>
-        <button class="tab" data-tab="output">3. Output</button>
+        <button class="tab active" data-tab="input">1. Input</button>
+        <button class="tab" data-tab="process">2. Process</button>
       </nav>
 
       <section class="panel active" id="tab-input">
         <div class="grid two">
           <article class="card">
-            <h2>Tell Us About Your Case</h2>
-            <p class="subtle">Start with your school and current context.</p>
+            <h2>Step 1: Context + Dates</h2>
+            <p class="subtle">Enter your context once. VisaFlow routes and builds the right path.</p>
+
             <div class="form-grid">
               <label>
                 School / University
-                <input id="school_name_input" placeholder="UCLA, UCB, Cornell, Duke, Yale..." />
+                <input id="school_name_input" placeholder="UCLA, UCB, Cornell, Duke, Yale, etc." />
               </label>
+
               <label>
                 Current Status
                 <select id="status_type_input">
                   <option value="">Select</option>
                   <option value="f1">F-1</option>
+                  <option value="cpt">CPT</option>
                   <option value="opt">OPT</option>
                   <option value="stem_opt">STEM OPT</option>
+                  <option value="h1b">H-1B Context</option>
+                  <option value="cap_gap">Cap Gap Context</option>
                 </select>
               </label>
+
               <label>
                 Program Stage
                 <select id="program_stage_input">
@@ -61,36 +66,114 @@
                   <option value="working">Working</option>
                 </select>
               </label>
+
               <label>
                 Preferred View
                 <select id="preferred_mode">
                   <option value="checklist">Checklist</option>
                   <option value="timeline">Timeline</option>
-                  <option value="explain">Explain</option>
+                  <option value="explain">Explain (Checklist + Timeline + Text)</option>
+                </select>
+              </label>
+
+              <label>
+                Stress Level
+                <div class="range-wrap">
+                  <input id="stress_level_input" type="range" min="1" max="5" value="3" />
+                  <span id="stress_level_value">3 / 5</span>
+                </div>
+              </label>
+
+              <label>
+                Major / Program
+                <input id="major_program_input" placeholder="MS CS, MBA, etc." />
+              </label>
+
+              <label>
+                Program Start Date
+                <input id="program_start_date_input" type="date" />
+              </label>
+
+              <label>
+                Graduation Date
+                <input id="graduation_date_input" type="date" />
+              </label>
+
+              <label>
+                Job / Internship Start Date
+                <input id="job_start_date_input" type="date" />
+              </label>
+
+              <label>
+                Job / Internship End Date
+                <input id="work_end_date_input" type="date" />
+              </label>
+
+              <label>
+                Employment Offer
+                <select id="employment_offer_input">
+                  <option value="">Select</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                  <option value="unknown">Not sure</option>
+                </select>
+              </label>
+
+              <label>
+                Employer Name
+                <input id="employer_name_input" placeholder="Company / Lab / Organization" />
+              </label>
+
+              <label>
+                Work Location
+                <input id="work_location_input" placeholder="City, State or Remote" />
+              </label>
+
+              <label>
+                Petition Status
+                <select id="petition_status_input">
+                  <option value="">Select</option>
+                  <option value="unknown">Unknown</option>
+                  <option value="filed">Filed</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved_or_selected">Approved / Selected</option>
+                  <option value="denied_or_not_selected">Denied / Not Selected</option>
                 </select>
               </label>
             </div>
 
             <label>
-              Describe your situation
-              <textarea id="intent" rows="6" placeholder="Example: I am an F-1 student and got a summer internship, but I do not know whether I need CPT or OPT."></textarea>
+              Describe your situation in plain language
+              <textarea
+                id="intent"
+                rows="5"
+                placeholder="Example: I am an international student and got an internship starting Sept 25, but I do not know whether I need CPT or OPT."
+              ></textarea>
             </label>
 
-            <button id="start_btn" class="primary">Generate Plan</button>
+            <button id="start_btn" class="primary">Generate My Plan</button>
           </article>
 
           <article class="card">
-            <h2>Synthetic Demo Cases</h2>
-            <p class="subtle">Use one click demo personas for investor walkthroughs.</p>
+            <h2>Quick Start</h2>
             <div id="scenario_chips" class="chips"></div>
 
-            <h3>Suggested Paths</h3>
+            <h3>Suggested Flows</h3>
             <ul id="candidate_flows" class="list"></ul>
 
             <div id="disambiguation_card" class="notice hidden">
-              <h3>Choose The Right Path</h3>
+              <h3>Confirm Path</h3>
               <p id="disambiguation_prompt"></p>
               <div id="disambiguation_options" class="chips"></div>
+            </div>
+
+            <div class="notice soft">
+              <h3>What You Get</h3>
+              <ul class="list compact static-list">
+                <li>Step-by-step workflow for CPT, OPT, STEM OPT, or Cap Gap/H-1B transition.</li>
+                <li>Documents checklist (I-20, I-94, offer/admission evidence, and flow-specific docs).</li>
+                <li>Advisor questions and timeline dates based on your job start date.</li>
+              </ul>
             </div>
           </article>
         </div>
@@ -99,8 +182,8 @@
       <section class="panel" id="tab-process">
         <div class="toolbar">
           <div>
-            <span id="current_view" class="pill">View: Checklist</span>
-            <p id="guidance_text" class="subtle">We will keep this simple and guide one step at a time.</p>
+            <span id="current_view" class="pill">Mode: Checklist</span>
+            <p id="guidance_text" class="subtle">Your plan is ready. Complete each step in order.</p>
           </div>
           <div class="chips">
             <button class="chip-btn" data-manual-mode="checklist">Checklist</button>
@@ -111,78 +194,64 @@
 
         <div class="grid two">
           <article class="card">
-            <h2>Your Step-by-Step Plan</h2>
+            <h2>Step-by-Step Workflow</h2>
             <ul id="workflow_steps" class="list"></ul>
           </article>
 
           <article class="card">
-            <h2>What To Do Next</h2>
+            <h2>Status</h2>
             <div class="status-row">
-              <span id="status_primary" class="badge">In Progress</span>
-              <span id="status_secondary" class="badge muted-badge">Preparing Handoff</span>
+              <span id="status_primary" class="badge needs">Needs Info</span>
+              <span id="status_secondary" class="badge muted-badge">Finish required items</span>
             </div>
-            <p><strong>Next action:</strong> <span id="next_action">Generate a plan from intake first.</span></p>
+            <p><strong>Next action:</strong> <span id="next_action">Generate a plan from Input.</span></p>
+            <p><strong>Progress:</strong> <span id="process_progress">Step 0 of 0</span></p>
             <h3>Still Needed Before Advisor Review</h3>
             <ul id="missing_preview" class="list compact"></ul>
           </article>
         </div>
-      </section>
 
-      <section class="panel" id="tab-output">
-        <div class="grid two">
+        <div class="grid two process-grid">
           <article class="card">
-            <h2>Complete Required Details</h2>
-            <p class="subtle">Only fields relevant to your selected path matter.</p>
-            <div class="form-grid">
-              <label>School Name <input data-field="school_name" class="case-field" /></label>
-              <label>Status Type <input data-field="status_type" class="case-field" placeholder="f1 / opt / stem_opt" /></label>
-              <label>Program Stage <input data-field="program_stage" class="case-field" placeholder="enrolled / graduating / graduated / working" /></label>
-              <label>Employment Offer <input data-field="employment_offer" class="case-field" placeholder="yes/no" /></label>
-              <label>Employer Name <input data-field="employer_name" class="case-field" /></label>
-              <label>Work Location <input data-field="work_location" class="case-field" /></label>
-              <label>Work Start Date <input data-field="work_start_date" class="case-field" type="date" /></label>
-              <label>Work End Date <input data-field="work_end_date" class="case-field" type="date" /></label>
-              <label>Graduation Date <input data-field="graduation_date" class="case-field" type="date" /></label>
-              <label>Petition Status <input data-field="petition_status" class="case-field" placeholder="filed / pending / unknown" /></label>
-              <label>Documents Available <input data-field="documents_available" class="case-field" placeholder="i20, passport, offer_letter" /></label>
-              <label>Major/Program <input data-field="major_program" class="case-field" /></label>
-            </div>
-            <h3>Missing Items</h3>
-            <ul id="missing_items" class="list compact"></ul>
+            <h2>Documents Checklist</h2>
+            <p id="docs_hint" class="subtle">Mark documents you already have.</p>
+            <div id="docs_checklist" class="doc-list"></div>
+
+            <h3>Missing Core Documents</h3>
+            <ul id="missing_docs" class="list compact"></ul>
           </article>
 
           <article class="card">
-            <h2>Full Output Package</h2>
-            <div class="actions">
-              <button id="generate_packet" class="primary">Generate Full Prep Packet</button>
-              <button id="copy_packet">Copy Packet</button>
-            </div>
-            <p id="packet_status" class="subtle">Generate to produce the final advisor-ready output.</p>
+            <h2>Advisor Questions</h2>
+            <ul id="advisor_questions" class="list"></ul>
 
-            <h3>Case Summary</h3>
-            <ul id="case_summary" class="list compact"></ul>
-
-            <h3>Personalized Checklist</h3>
-            <ul id="final_checklist" class="list compact"></ul>
-
-            <h3>Timeline Plan</h3>
-            <ul id="final_timeline" class="list compact"></ul>
-
-            <h3>Questions To Ask Advisor</h3>
-            <ul id="advisor_questions" class="list compact"></ul>
-
-            <h3>Source References</h3>
-            <ul id="citations" class="list compact"></ul>
-
-            <pre id="packet_output"></pre>
+            <h3>Timeline</h3>
+            <ul id="timeline_view" class="list compact"></ul>
           </article>
         </div>
+
+        <article class="card explain-card hidden" id="explain_bundle">
+          <h2>Explain View</h2>
+          <p id="explain_intro" class="subtle"></p>
+          <div class="grid three">
+            <div>
+              <h3>Checklist</h3>
+              <ul id="explain_checklist" class="list compact"></ul>
+            </div>
+            <div>
+              <h3>Timeline</h3>
+              <ul id="explain_timeline" class="list compact"></ul>
+            </div>
+            <div>
+              <h3>Plain Guidance</h3>
+              <ul id="explain_text" class="list compact"></ul>
+            </div>
+          </div>
+        </article>
       </section>
     </main>
 
-    <footer class="footer shell">
-      Workflow preparation assistant only. Not legal advice.
-    </footer>
+    <footer class="footer shell">Workflow preparation assistant only. Not legal advice.</footer>
 
     <script src="/static/app.js"></script>
   </body>

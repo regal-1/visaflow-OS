@@ -155,6 +155,11 @@ class SessionState(BaseModel):
 
     case_graph: CaseGraph = Field(default_factory=CaseGraph)
     workflow: list[WorkflowStep] = Field(default_factory=list)
+    flow_description: str = ""
+    doc_requirements: list[str] = Field(default_factory=list)
+    common_confusions: list[str] = Field(default_factory=list)
+    flow_warnings: list[str] = Field(default_factory=list)
+    flow_disclaimer: str = "Workflow preparation assistant only. Not legal advice."
 
     required_entities: list[str] = Field(default_factory=list)
     fields: dict[str, str] = Field(default_factory=dict)

@@ -59,7 +59,14 @@
       "dependencies": ["cpt-microcheck"]
     }
   ],
-  "doc_requirements": ["i20", "passport", "internship_offer_letter", "i94"],
+  "doc_requirements": [
+    "i20",
+    "i94",
+    "passport",
+    "admission_letter",
+    "internship_offer_letter",
+    "employment_offer_letter"
+  ],
   "common_confusions": [
     "Can I start work before authorization is confirmed?",
     "Do employer details matter before advisor review?"

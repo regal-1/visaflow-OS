@@ -57,7 +57,14 @@
       "dependencies": ["cap-warning"]
     }
   ],
-  "doc_requirements": ["ead_card", "h1b_receipt_notice", "i20", "i94"],
+  "doc_requirements": [
+    "ead_card",
+    "h1b_receipt_notice",
+    "i20",
+    "i94",
+    "passport",
+    "employment_offer_letter"
+  ],
   "common_confusions": [
     "What does Cap Gap extend, and for whom?",
     "What should be verified if petition state is unclear?"

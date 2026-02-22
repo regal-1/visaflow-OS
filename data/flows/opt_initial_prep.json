@@ -58,7 +58,14 @@
       "dependencies": ["opt-microcheck"]
     }
   ],
-  "doc_requirements": ["i20", "passport", "i94", "employment_verification"],
+  "doc_requirements": [
+    "i20",
+    "i94",
+    "passport",
+    "admission_letter",
+    "employment_offer_letter",
+    "employment_verification"
+  ],
   "common_confusions": [
     "What is the difference between pre-completion and post-completion OPT?",
     "Do I need employer details now or later?"

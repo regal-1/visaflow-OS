@@ -44,6 +44,9 @@ class FlowPack(BaseModel):
 
 
 STATUS_PATTERNS = [
+    (re.compile(r"\bcap[\s\-]?gap\b", re.I), "cap_gap"),
+    (re.compile(r"\bh-?1b\b", re.I), "h1b"),
+    (re.compile(r"\bcpt\b", re.I), "cpt"),
     (re.compile(r"\bstem opt\b", re.I), "stem_opt"),
     (re.compile(r"\bopt\b", re.I), "opt"),
     (re.compile(r"\bf-?1\b", re.I), "f1"),
@@ -111,10 +114,17 @@ class FlowPackStore:
 
             status = entities.get("status_type")
             if status and pack.applies_if.status_any:
-                normalized_statuses = {_normalize_value(v) for v in pack.applies_if.status_any}
-                if _normalize_value(status) in normalized_statuses:
+                normalized_statuses = {_normalize_status(v) for v in pack.applies_if.status_any}
+                status_equivalents = _status_equivalents(status)
+                if status_equivalents.intersection(normalized_statuses):
                     score += 1.8
                     reasons.append("status match")
+                    if pack.flow_id == "cpt_prep" and "cpt" in status_equivalents:
+                        score += 0.9
+                        reasons.append("explicit CPT status")
+                    if pack.flow_id == "cap_gap_transition_prep" and status_equivalents.intersection({"h1b", "cap_gap"}):
+                        score += 1.1
+                        reasons.append("transition status signal")
                 else:
                     score -= 0.6
 
@@ -221,6 +231,11 @@ def extract_entities(intent: str, fields: Optional[dict[str, str]] = None) -> di
             if pattern.search(text):
                 entities["program_stage"] = stage
                 break
+    normalized_status = _normalize_status(entities.get("status_type", ""))
+    if "program_stage" not in entities and normalized_status == "cpt":
+        entities["program_stage"] = "enrolled"
+    if "program_stage" not in entities and normalized_status in {"h1b", "cap_gap"}:
+        entities["program_stage"] = "working"
 
     if "petition_status" not in entities and ("h-1b" in text or "h1b" in text or "cap gap" in text):
         entities["petition_status"] = "unknown"
@@ -228,6 +243,8 @@ def extract_entities(intent: str, fields: Optional[dict[str, str]] = None) -> di
             if pattern.search(text):
                 entities["petition_status"] = value
                 break
+    if "petition_status" not in entities and normalized_status in {"h1b", "cap_gap"}:
+        entities["petition_status"] = "unknown"
 
     if "employment_offer" not in entities:
         if re.search(r"\binternship|offer|job|employment\b", text, re.I):
@@ -303,3 +320,27 @@ def _keyword_hits(text: str, tokens: set[str], keywords: list[str]) -> list[str]
 
 def _normalize_value(value: str) -> str:
     return value.strip().lower().replace("-", "_")
+
+
+def _normalize_status(value: str) -> str:
+    normalized = _normalize_value(value)
+    if normalized in {"f_1", "f1", "f-1"}:
+        return "f1"
+    if normalized in {"stem", "stemopt", "stem_opt"}:
+        return "stem_opt"
+    if normalized in {"capgap", "cap_gap"}:
+        return "cap_gap"
+    return normalized
+
+
+def _status_equivalents(status: str) -> set[str]:
+    normalized = _normalize_status(status)
+    if normalized == "cpt":
+        return {"cpt", "f1"}
+    if normalized == "stem_opt":
+        return {"stem_opt", "opt"}
+    if normalized == "cap_gap":
+        return {"cap_gap", "h1b", "opt", "stem_opt", "f1"}
+    if normalized == "h1b":
+        return {"h1b", "cap_gap", "opt", "stem_opt", "f1"}
+    return {normalized}

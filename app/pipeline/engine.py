@@ -197,6 +197,11 @@ class PipelineEngine:
         session.active_check_ids = pack.micro_checks
         session.case_graph = graph
         session.workflow = workflow
+        session.flow_description = pack.description
+        session.doc_requirements = pack.doc_requirements
+        session.common_confusions = pack.common_confusions
+        session.flow_warnings = pack.warnings
+        session.flow_disclaimer = pack.disclaimer
         session.fields = existing_fields
         self._merge_entity_defaults(session)
 

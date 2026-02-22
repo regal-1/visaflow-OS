@@ -30,7 +30,7 @@
       "dependencies": ["basics-intake"]
     }
   ],
-  "doc_requirements": ["i20", "passport"],
+  "doc_requirements": ["i20", "i94", "passport", "admission_letter"],
   "common_confusions": ["Do I need CPT or OPT?", "What should I do first?"],
   "micro_checks": ["dependency_employer_info"],
   "warnings": ["Use this flow to orient; escalate for case-specific legal decisions."],
