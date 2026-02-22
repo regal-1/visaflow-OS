@@ -13,33 +13,34 @@
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <header class="header">
+    <header class="header shell">
       <div>
         <h1>VisaFlow OS</h1>
-        <p>Adaptive visa workflow prep for any school</p>
+        <p>Adaptive workflow prep for CPT, OPT, STEM OPT, and Cap Gap/H-1B transition</p>
       </div>
       <div class="header-meta">
         <span id="school_label">School: not set</span>
-        <span id="flow_label">Flow: not started</span>
+        <span id="flow_label">Path: not started</span>
         <span id="progress_text">Progress: Step 0 of 0</span>
       </div>
     </header>
 
-    <main class="container">
-      <nav class="tabs">
-        <button class="tab active" data-tab="input">1. Input</button>
-        <button class="tab" data-tab="process">2. Process</button>
+    <main class="shell">
+      <nav class="tabs" aria-label="Workflow Sections">
+        <button class="tab active" data-tab="input">1. Intake</button>
+        <button class="tab" data-tab="process">2. Plan</button>
         <button class="tab" data-tab="output">3. Output</button>
       </nav>
 
-      <section class="tab-panel active" id="tab-input">
-        <div class="grid-2">
+      <section class="panel active" id="tab-input">
+        <div class="grid two">
           <article class="card">
-            <h2>Step 1: Context</h2>
+            <h2>Tell Us About Your Case</h2>
+            <p class="subtle">Start with your school and current context.</p>
             <div class="form-grid">
               <label>
                 School / University
-                <input id="school_name_input" placeholder="UCLA, UCB, Cornell, Duke, Yale, etc." />
+                <input id="school_name_input" placeholder="UCLA, UCB, Cornell, Duke, Yale..." />
               </label>
               <label>
                 Current Status
@@ -70,104 +71,116 @@
               </label>
             </div>
 
-            <h2>Step 2: Your Situation</h2>
             <label>
-              Describe your case in plain language
-              <textarea id="intent" rows="5">I am an international student and got an internship, but I do not know whether I need CPT or OPT.</textarea>
+              Describe your situation
+              <textarea id="intent" rows="6" placeholder="Example: I am an F-1 student and got a summer internship, but I do not know whether I need CPT or OPT."></textarea>
             </label>
 
-            <button id="start_btn" class="primary">Generate My Plan</button>
+            <button id="start_btn" class="primary">Generate Plan</button>
           </article>
 
           <article class="card">
-            <h2>Quick Start</h2>
-            <div id="scenario_chips" class="chip-wrap"></div>
+            <h2>Synthetic Demo Cases</h2>
+            <p class="subtle">Use one click demo personas for investor walkthroughs.</p>
+            <div id="scenario_chips" class="chips"></div>
 
-            <h3>Suggested Flows</h3>
+            <h3>Suggested Paths</h3>
             <ul id="candidate_flows" class="list"></ul>
 
-            <div id="disambiguation_card" class="hint hidden">
-              <h3>Choose Your Path</h3>
+            <div id="disambiguation_card" class="notice hidden">
+              <h3>Choose The Right Path</h3>
               <p id="disambiguation_prompt"></p>
-              <div id="disambiguation_options" class="chip-wrap"></div>
+              <div id="disambiguation_options" class="chips"></div>
             </div>
           </article>
         </div>
       </section>
 
-      <section class="tab-panel" id="tab-process">
-        <div class="process-top">
-          <div class="mode-summary">
-            <span class="chip solid" id="current_mode_chip">View: Checklist</span>
-            <span class="muted" id="why_mode">We will guide you with the simplest next step.</span>
+      <section class="panel" id="tab-process">
+        <div class="toolbar">
+          <div>
+            <span id="current_view" class="pill">View: Checklist</span>
+            <p id="guidance_text" class="subtle">We will keep this simple and guide one step at a time.</p>
           </div>
-          <div class="mode-row">
-            <button class="mode-pill" data-manual-mode="checklist">Checklist</button>
-            <button class="mode-pill" data-manual-mode="timeline">Timeline</button>
-            <button class="mode-pill" data-manual-mode="explain">Explain</button>
+          <div class="chips">
+            <button class="chip-btn" data-manual-mode="checklist">Checklist</button>
+            <button class="chip-btn" data-manual-mode="timeline">Timeline</button>
+            <button class="chip-btn" data-manual-mode="explain">Explain</button>
           </div>
         </div>
 
-        <div class="grid-2 process-grid">
+        <div class="grid two">
           <article class="card">
-            <h2>Your Steps</h2>
+            <h2>Your Step-by-Step Plan</h2>
             <ul id="workflow_steps" class="list"></ul>
           </article>
 
           <article class="card">
             <h2>What To Do Next</h2>
             <div class="status-row">
-              <span id="readiness_badge" class="badge needs">Needs Info</span>
-              <span id="review_badge" class="badge neutral">In Progress</span>
+              <span id="status_primary" class="badge">In Progress</span>
+              <span id="status_secondary" class="badge muted-badge">Preparing Handoff</span>
             </div>
-            <div id="adaptive_surface" class="surface"></div>
-
-            <h3>Missing Before Advisor Review</h3>
+            <p><strong>Next action:</strong> <span id="next_action">Generate a plan from intake first.</span></p>
+            <h3>Still Needed Before Advisor Review</h3>
             <ul id="missing_preview" class="list compact"></ul>
           </article>
         </div>
       </section>
 
-      <section class="tab-panel" id="tab-output">
-        <div class="grid-2">
+      <section class="panel" id="tab-output">
+        <div class="grid two">
           <article class="card">
-            <h2>Required Details</h2>
-            <div class="field-grid">
+            <h2>Complete Required Details</h2>
+            <p class="subtle">Only fields relevant to your selected path matter.</p>
+            <div class="form-grid">
               <label>School Name <input data-field="school_name" class="case-field" /></label>
               <label>Status Type <input data-field="status_type" class="case-field" placeholder="f1 / opt / stem_opt" /></label>
               <label>Program Stage <input data-field="program_stage" class="case-field" placeholder="enrolled / graduating / graduated / working" /></label>
               <label>Employment Offer <input data-field="employment_offer" class="case-field" placeholder="yes/no" /></label>
               <label>Employer Name <input data-field="employer_name" class="case-field" /></label>
+              <label>Work Location <input data-field="work_location" class="case-field" /></label>
               <label>Work Start Date <input data-field="work_start_date" class="case-field" type="date" /></label>
               <label>Work End Date <input data-field="work_end_date" class="case-field" type="date" /></label>
               <label>Graduation Date <input data-field="graduation_date" class="case-field" type="date" /></label>
               <label>Petition Status <input data-field="petition_status" class="case-field" placeholder="filed / pending / unknown" /></label>
               <label>Documents Available <input data-field="documents_available" class="case-field" placeholder="i20, passport, offer_letter" /></label>
+              <label>Major/Program <input data-field="major_program" class="case-field" /></label>
             </div>
-
-            <h3>Still Needed</h3>
-            <ul id="missing_items" class="list"></ul>
+            <h3>Missing Items</h3>
+            <ul id="missing_items" class="list compact"></ul>
           </article>
 
           <article class="card">
-            <h2>Full Output</h2>
+            <h2>Full Output Package</h2>
+            <div class="actions">
+              <button id="generate_packet" class="primary">Generate Full Prep Packet</button>
+              <button id="copy_packet">Copy Packet</button>
+            </div>
+            <p id="packet_status" class="subtle">Generate to produce the final advisor-ready output.</p>
+
+            <h3>Case Summary</h3>
+            <ul id="case_summary" class="list compact"></ul>
+
             <h3>Personalized Checklist</h3>
             <ul id="final_checklist" class="list compact"></ul>
+
+            <h3>Timeline Plan</h3>
+            <ul id="final_timeline" class="list compact"></ul>
 
             <h3>Questions To Ask Advisor</h3>
             <ul id="advisor_questions" class="list compact"></ul>
 
-            <h3>References</h3>
+            <h3>Source References</h3>
             <ul id="citations" class="list compact"></ul>
 
-            <button id="generate_packet" class="primary">Generate Full Prep Packet</button>
             <pre id="packet_output"></pre>
           </article>
         </div>
       </section>
     </main>
 
-    <footer class="footer">
+    <footer class="footer shell">
       Workflow preparation assistant only. Not legal advice.
     </footer>
 

@@ -1,8 +1,7 @@
 const state = {
   session: null,
   scenarios: [],
-  activeTab: "input",
-  lastMutationReason: "",
+  lastReason: "Complete the intake form to generate your plan.",
 };
 
 const FIELD_LABELS = {
@@ -11,12 +10,12 @@ const FIELD_LABELS = {
   program_stage: "Program stage",
   employment_offer: "Employment offer",
   employer_name: "Employer name",
+  work_location: "Work location",
   work_start_date: "Work start date",
   work_end_date: "Work end date",
   graduation_date: "Graduation date",
   petition_status: "Petition status",
   documents_available: "Documents available",
-  work_location: "Work location",
   major_program: "Major/program",
 };
 
@@ -32,11 +31,11 @@ const els = {
   flowLabel: document.getElementById("flow_label"),
   progressText: document.getElementById("progress_text"),
 
-  schoolNameInput: document.getElementById("school_name_input"),
-  statusTypeInput: document.getElementById("status_type_input"),
-  programStageInput: document.getElementById("program_stage_input"),
-  intent: document.getElementById("intent"),
+  schoolInput: document.getElementById("school_name_input"),
+  statusInput: document.getElementById("status_type_input"),
+  stageInput: document.getElementById("program_stage_input"),
   preferredMode: document.getElementById("preferred_mode"),
+  intent: document.getElementById("intent"),
   startBtn: document.getElementById("start_btn"),
 
   scenarioChips: document.getElementById("scenario_chips"),
@@ -45,23 +44,26 @@ const els = {
   disambiguationPrompt: document.getElementById("disambiguation_prompt"),
   disambiguationOptions: document.getElementById("disambiguation_options"),
 
-  currentModeChip: document.getElementById("current_mode_chip"),
-  whyMode: document.getElementById("why_mode"),
-  manualModeButtons: Array.from(document.querySelectorAll("[data-manual-mode]")),
+  currentView: document.getElementById("current_view"),
+  guidanceText: document.getElementById("guidance_text"),
+  modeButtons: Array.from(document.querySelectorAll("[data-manual-mode]")),
   workflowSteps: document.getElementById("workflow_steps"),
-
-  readinessBadge: document.getElementById("readiness_badge"),
-  reviewBadge: document.getElementById("review_badge"),
-  adaptiveSurface: document.getElementById("adaptive_surface"),
+  statusPrimary: document.getElementById("status_primary"),
+  statusSecondary: document.getElementById("status_secondary"),
+  nextAction: document.getElementById("next_action"),
   missingPreview: document.getElementById("missing_preview"),
 
   fields: Array.from(document.querySelectorAll(".case-field")),
   missingItems: document.getElementById("missing_items"),
+  caseSummary: document.getElementById("case_summary"),
   finalChecklist: document.getElementById("final_checklist"),
+  finalTimeline: document.getElementById("final_timeline"),
   advisorQuestions: document.getElementById("advisor_questions"),
   citations: document.getElementById("citations"),
-  generatePacket: document.getElementById("generate_packet"),
   packetOutput: document.getElementById("packet_output"),
+  packetStatus: document.getElementById("packet_status"),
+  generatePacket: document.getElementById("generate_packet"),
+  copyPacket: document.getElementById("copy_packet"),
 };
 
 boot();
@@ -79,10 +81,11 @@ function bindEvents() {
 
   els.startBtn.addEventListener("click", startSession);
   els.generatePacket.addEventListener("click", generatePacket);
+  els.copyPacket.addEventListener("click", copyPacketToClipboard);
 
-  els.manualModeButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      sendEvent("mode_change", { mode: btn.dataset.manualMode });
+  els.modeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      sendEvent("mode_change", { mode: button.dataset.manualMode });
     });
   });
 
@@ -95,7 +98,6 @@ function bindEvents() {
 }
 
 function setTab(tabName) {
-  state.activeTab = tabName;
   els.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === tabName));
   Object.entries(els.panels).forEach(([name, panel]) => {
     panel.classList.toggle("active", name === tabName);
@@ -104,7 +106,9 @@ function setTab(tabName) {
 
 async function loadScenarios() {
   const res = await fetch("/api/scenarios");
-  if (!res.ok) return;
+  if (!res.ok) {
+    return;
+  }
   const data = await res.json();
   state.scenarios = data.scenarios || [];
 }
@@ -113,26 +117,38 @@ function renderScenarioChips() {
   els.scenarioChips.innerHTML = "";
   if (!state.scenarios.length) {
     const span = document.createElement("span");
-    span.className = "chip";
-    span.textContent = "No presets";
+    span.className = "chip static";
+    span.textContent = "No demo cases found.";
     els.scenarioChips.appendChild(span);
     return;
   }
 
   for (const scenario of state.scenarios) {
-    const btn = document.createElement("button");
-    btn.className = "chip";
-    btn.textContent = scenario.scenario_id.replaceAll("_", " ");
-    btn.addEventListener("click", () => {
-      els.intent.value = scenario.intent;
-    });
-    els.scenarioChips.appendChild(btn);
+    const button = document.createElement("button");
+    button.className = "chip-btn";
+    button.textContent = scenario.label || beautifyId(scenario.scenario_id || "demo_case");
+    button.addEventListener("click", () => applyScenario(scenario));
+    els.scenarioChips.appendChild(button);
   }
 }
 
+function applyScenario(scenario) {
+  els.intent.value = scenario.intent || "";
+  const initial = scenario.initial_fields || {};
+  els.schoolInput.value = initial.school_name || "";
+  els.statusInput.value = initial.status_type || "";
+  els.stageInput.value = initial.program_stage || "";
+}
+
 async function startSession() {
+  const intent = els.intent.value.trim();
+  if (!intent) {
+    alert("Please describe your situation first.");
+    return;
+  }
+
   const payload = {
-    intent: els.intent.value.trim(),
+    intent,
     profile: {
       familiarity_level: "new",
       preferred_mode: els.preferredMode.value,
@@ -140,9 +156,9 @@ async function startSession() {
       role: "student",
     },
     initial_fields: {
-      school_name: els.schoolNameInput.value.trim(),
-      status_type: els.statusTypeInput.value,
-      program_stage: els.programStageInput.value,
+      school_name: els.schoolInput.value.trim(),
+      status_type: els.statusInput.value,
+      program_stage: els.stageInput.value,
     },
   };
 
@@ -152,75 +168,104 @@ async function startSession() {
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    alert("Failed to start session");
+    alert("Could not generate plan. Try again.");
     return;
   }
 
   const data = await res.json();
   state.session = data.session;
-  state.lastMutationReason = "Plan created from your context and situation.";
+  state.lastReason = "Plan generated from your context and intent.";
   render();
   setTab("process");
 }
 
 async function sendEvent(eventType, payload = {}) {
-  if (!state.session) return;
+  if (!state.session) {
+    return;
+  }
+
   const res = await fetch(`/api/session/${state.session.session_id}/event`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ event_type: eventType, payload }),
   });
-  if (!res.ok) return;
+  if (!res.ok) {
+    return;
+  }
 
   const data = await res.json();
   state.session = data.session;
-  state.lastMutationReason = friendlyReason(data.mutation.reason);
+  state.lastReason = friendlyReason(data.mutation.reason);
   render();
 }
 
 async function generatePacket() {
-  if (!state.session) return;
+  if (!state.session) {
+    return;
+  }
   const res = await fetch(`/api/session/${state.session.session_id}/packet`, { method: "POST" });
-  if (!res.ok) return;
+  if (!res.ok) {
+    alert("Could not generate packet.");
+    return;
+  }
   const data = await res.json();
   els.packetOutput.textContent = data.packet_markdown;
+  els.packetStatus.textContent = "Full prep packet generated. You can copy it now.";
   setTab("output");
+}
+
+async function copyPacketToClipboard() {
+  const text = els.packetOutput.textContent || "";
+  if (!text.trim()) {
+    els.packetStatus.textContent = "Generate packet first, then copy.";
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    els.packetStatus.textContent = "Packet copied to clipboard.";
+  } catch {
+    els.packetStatus.textContent = "Clipboard copy failed. You can still select and copy manually.";
+  }
 }
 
 function render() {
   const session = state.session;
-  if (!session) return;
+  if (!session) {
+    return;
+  }
 
-  const school = String(session.fields.school_name || "").trim() || "not set";
-  els.schoolLabel.textContent = `School: ${school}`;
-  els.flowLabel.textContent = `Flow: ${session.selected_flow_title}`;
-  renderProgress(session);
-
-  renderCandidateFlows(session.candidate_flows || [], session.selected_flow_id);
+  renderHeader(session);
+  renderCandidateFlows(session);
   renderDisambiguation(session.disambiguation_card);
-  renderModes(session.current_mode);
+  renderView(session.current_mode);
+  renderGuidance(session);
+  renderWorkflow(session.workflow || [], session.current_mode);
 
-  renderWorkflow(session.workflow || []);
-  renderStatusPanel(session);
-  renderMissingItems(session.missing_items || [], els.missingPreview);
-  renderMissingItems(session.missing_items || [], els.missingItems);
-  renderFinalChecklist(session);
+  renderMissing(session.missing_items || [], els.missingPreview);
+  renderMissing(session.missing_items || [], els.missingItems);
+  renderSummary(session);
+  renderChecklist(session.workflow || []);
+  renderTimeline(session.workflow || []);
   renderAdvisorQuestions(session);
   renderCitations(session.citations || []);
-  populateFields(session.fields || {});
+  syncFields(session.fields || {});
 
   if (session.advisor_packet_markdown) {
     els.packetOutput.textContent = session.advisor_packet_markdown;
   }
 }
 
-function renderProgress(session) {
-  const total = Math.max(1, (session.workflow || []).length);
+function renderHeader(session) {
+  const school = String(session.fields.school_name || "").trim() || "not set";
   const done = (session.workflow || []).filter((step) => step.status === "complete").length;
+  const total = Math.max(1, (session.workflow || []).length);
+  els.schoolLabel.textContent = `School: ${school}`;
+  els.flowLabel.textContent = `Path: ${session.selected_flow_title}`;
   els.progressText.textContent = `Progress: Step ${Math.min(done + 1, total)} of ${total}`;
 }
 
-function renderCandidateFlows(candidates, selectedFlowId) {
+function renderCandidateFlows(session) {
+  const candidates = session.candidate_flows || [];
   els.candidateFlows.innerHTML = "";
   if (!candidates.length) {
     const li = document.createElement("li");
@@ -232,13 +277,13 @@ function renderCandidateFlows(candidates, selectedFlowId) {
   for (const candidate of candidates.slice(0, 3)) {
     const li = document.createElement("li");
     li.innerHTML = `
-      <strong>${candidate.title}${candidate.flow_id === selectedFlowId ? " ✓" : ""}</strong>
-      <div class="muted">${candidate.reason}</div>
+      <strong>${candidate.title}${candidate.flow_id === session.selected_flow_id ? " (selected)" : ""}</strong>
+      <div class="subtle">${candidate.reason}</div>
     `;
-    const btn = document.createElement("button");
-    btn.textContent = "Use this path";
-    btn.addEventListener("click", () => sendEvent("select_flow", { flow_id: candidate.flow_id }));
-    li.appendChild(btn);
+    const button = document.createElement("button");
+    button.textContent = "Use this path";
+    button.addEventListener("click", () => sendEvent("select_flow", { flow_id: candidate.flow_id }));
+    li.appendChild(button);
     els.candidateFlows.appendChild(li);
   }
 }
@@ -258,22 +303,45 @@ function renderDisambiguation(card) {
     const [flowRaw, labelRaw] = option.split("|");
     const flowId = (flowRaw || "").trim();
     const label = (labelRaw || option).trim();
-    const btn = document.createElement("button");
-    btn.className = "chip";
-    btn.textContent = label;
-    btn.addEventListener("click", () => sendEvent("select_flow", { flow_id: flowId }));
-    els.disambiguationOptions.appendChild(btn);
+    const button = document.createElement("button");
+    button.className = "chip-btn";
+    button.textContent = label;
+    button.addEventListener("click", () => sendEvent("select_flow", { flow_id: flowId }));
+    els.disambiguationOptions.appendChild(button);
   }
 }
 
-function renderModes(currentMode) {
-  els.currentModeChip.textContent = `View: ${humanMode(currentMode)}`;
-  els.manualModeButtons.forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.manualMode === currentMode);
+function renderView(currentMode) {
+  els.currentView.textContent = `View: ${humanizeText(currentMode)}`;
+  els.modeButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.manualMode === currentMode);
   });
 }
 
-function renderWorkflow(steps) {
+function renderGuidance(session) {
+  const missing = session.missing_items || [];
+  const nextStep = (session.workflow || []).find((step) => step.status !== "complete");
+  const risk = Number(session.scores?.escalation_risk || 0);
+
+  els.guidanceText.textContent = state.lastReason;
+  els.nextAction.textContent = nextStep ? nextStep.title : "Generate the full prep packet.";
+
+  if (!missing.length && risk < 65) {
+    els.statusPrimary.className = "badge ready";
+    els.statusPrimary.textContent = "Ready";
+    els.statusSecondary.textContent = "Packet can be reviewed";
+  } else if (risk >= 70) {
+    els.statusPrimary.className = "badge verify";
+    els.statusPrimary.textContent = "Needs Verification";
+    els.statusSecondary.textContent = "Review with advisor or attorney";
+  } else {
+    els.statusPrimary.className = "badge needs";
+    els.statusPrimary.textContent = "Needs Info";
+    els.statusSecondary.textContent = "Complete missing details";
+  }
+}
+
+function renderWorkflow(steps, mode) {
   els.workflowSteps.innerHTML = "";
   if (!steps.length) {
     const li = document.createElement("li");
@@ -284,110 +352,120 @@ function renderWorkflow(steps) {
 
   for (const step of steps) {
     const li = document.createElement("li");
-    const status = step.status === "complete" ? "✅" : step.status === "blocked" ? "⚠️" : "⏳";
+    const status = step.status === "complete" ? "Done" : step.status === "blocked" ? "Blocked" : "Pending";
     li.innerHTML = `
-      <strong>${status} ${step.title}</strong>
-      <div class="muted">${step.description}</div>
+      <strong>${step.title}</strong>
+      <div class="subtle">Status: ${status}</div>
+      <div class="subtle">${describeStep(step, mode)}</div>
     `;
 
-    const row = document.createElement("div");
-    row.className = "inline-actions";
+    const actions = document.createElement("div");
+    actions.className = "actions inline";
 
-    const toggle = document.createElement("button");
-    toggle.textContent = step.status === "complete" ? "Mark Pending" : "Mark Complete";
-    toggle.addEventListener("click", () =>
+    const mark = document.createElement("button");
+    mark.textContent = step.status === "complete" ? "Mark Pending" : "Mark Done";
+    mark.addEventListener("click", () =>
       sendEvent(step.status === "complete" ? "unmark_step" : "mark_step", { step_id: step.step_id })
     );
-    row.appendChild(toggle);
-    li.appendChild(row);
+    actions.appendChild(mark);
+
+    if (step.status === "blocked") {
+      const reopen = document.createElement("button");
+      reopen.textContent = "Re-open";
+      reopen.addEventListener("click", () => sendEvent("step_reopen", { step_id: step.step_id }));
+      actions.appendChild(reopen);
+    }
+
+    li.appendChild(actions);
     els.workflowSteps.appendChild(li);
   }
 }
 
-function renderStatusPanel(session) {
-  const missing = session.missing_items || [];
-  const risk = Number(session.scores?.escalation_risk || 0);
-  const nextStep = (session.workflow || []).find((step) => step.status !== "complete");
-
-  let readinessText = "Needs Info";
-  let readinessClass = "needs";
-  if (!missing.length && risk < 60) {
-    readinessText = "Ready";
-    readinessClass = "ready";
-  } else if (risk >= 70) {
-    readinessText = "Needs Advisor Verification";
-    readinessClass = "verify";
-  }
-
-  els.readinessBadge.className = `badge ${readinessClass}`;
-  els.readinessBadge.textContent = readinessText;
-
-  els.reviewBadge.className = `badge neutral`;
-  els.reviewBadge.textContent = nextStep ? "In Progress" : "Packet Ready";
-
-  const why = state.lastMutationReason || "Guidance updated from your latest inputs.";
-  const next = nextStep ? nextStep.title : "Generate full prep packet";
-  els.whyMode.textContent = why;
-  els.adaptiveSurface.innerHTML = `
-    <p><strong>What changed:</strong> ${why}</p>
-    <p><strong>Next best step:</strong> ${next}</p>
-    <p><strong>Current focus:</strong> ${humanMode(session.current_mode)} view</p>
-  `;
-}
-
-function renderMissingItems(missing, targetEl) {
-  targetEl.innerHTML = "";
-  if (!missing.length) {
+function renderMissing(missingItems, target) {
+  target.innerHTML = "";
+  if (!missingItems.length) {
     const li = document.createElement("li");
-    li.textContent = "Nothing missing right now.";
-    targetEl.appendChild(li);
+    li.textContent = "No missing items right now.";
+    target.appendChild(li);
     return;
   }
-  for (const item of missing) {
+  for (const missing of missingItems) {
     const li = document.createElement("li");
-    li.textContent = humanField(item);
-    targetEl.appendChild(li);
+    li.textContent = humanFieldLabel(missing);
+    target.appendChild(li);
   }
 }
 
-function renderFinalChecklist(session) {
-  const items = session.workflow || [];
-  els.finalChecklist.innerHTML = "";
-  if (!items.length) {
+function renderSummary(session) {
+  const summaryItems = [];
+  summaryItems.push(`Selected path: ${session.selected_flow_title}`);
+  summaryItems.push(`School: ${session.fields.school_name || "Not provided"}`);
+  summaryItems.push(`Status: ${session.fields.status_type || "Not provided"}`);
+  summaryItems.push(`Program stage: ${session.fields.program_stage || "Not provided"}`);
+  summaryItems.push(`Intent: ${session.intent}`);
+
+  els.caseSummary.innerHTML = "";
+  for (const item of summaryItems) {
     const li = document.createElement("li");
-    li.textContent = "No checklist yet.";
+    li.textContent = item;
+    els.caseSummary.appendChild(li);
+  }
+}
+
+function renderChecklist(steps) {
+  els.finalChecklist.innerHTML = "";
+  if (!steps.length) {
+    const li = document.createElement("li");
+    li.textContent = "No checklist available.";
     els.finalChecklist.appendChild(li);
     return;
   }
-
-  for (const step of items) {
+  for (const step of steps) {
     const li = document.createElement("li");
     li.textContent = `${step.status === "complete" ? "[x]" : "[ ]"} ${step.title}`;
     els.finalChecklist.appendChild(li);
   }
 }
 
+function renderTimeline(steps) {
+  els.finalTimeline.innerHTML = "";
+  if (!steps.length) {
+    const li = document.createElement("li");
+    li.textContent = "No timeline available.";
+    els.finalTimeline.appendChild(li);
+    return;
+  }
+
+  steps.forEach((step, index) => {
+    const li = document.createElement("li");
+    const deps = step.dependencies && step.dependencies.length
+      ? ` (depends on ${step.dependencies.join(", ")})`
+      : "";
+    li.textContent = `${index + 1}. ${step.title}${deps}`;
+    els.finalTimeline.appendChild(li);
+  });
+}
+
 function renderAdvisorQuestions(session) {
-  els.advisorQuestions.innerHTML = "";
-  const missing = session.missing_items || [];
   const questions = [
-    "Which parts of this plan should I verify with my international office?",
-    "Are any timeline assumptions in this case incorrect?",
+    "Which assumptions in this plan should be verified by my international office?",
+    "Are there timeline risks I should resolve before submission?",
   ];
 
-  if (missing.includes("employer_name")) {
-    questions.push("What exact employer details are required before review?");
+  if ((session.missing_items || []).includes("employer_name")) {
+    questions.push("Which employer details are required before advisor review?");
   }
-  if (missing.includes("petition_status")) {
-    questions.push("What petition status proof should I provide?");
+  if ((session.missing_items || []).includes("petition_status")) {
+    questions.push("What petition status documents should I provide?");
   }
   if (session.selected_flow_id === "cap_gap_transition_prep") {
-    questions.push("Can we confirm my transition timing and bridge eligibility?");
+    questions.push("Can we confirm my transition bridge timing and handoff sequence?");
   }
 
-  for (const q of questions) {
+  els.advisorQuestions.innerHTML = "";
+  for (const question of questions) {
     const li = document.createElement("li");
-    li.textContent = q;
+    li.textContent = question;
     els.advisorQuestions.appendChild(li);
   }
 }
@@ -400,49 +478,80 @@ function renderCitations(citations) {
     els.citations.appendChild(li);
     return;
   }
-
-  for (const citation of citations.slice(0, 4)) {
+  for (const citation of citations.slice(0, 5)) {
     const li = document.createElement("li");
     const link = document.createElement("a");
     link.href = citation.url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.textContent = citation.title;
-    link.style.color = "#8bd9ff";
     li.appendChild(link);
     els.citations.appendChild(li);
   }
 }
 
-function populateFields(values) {
-  for (const input of els.fields) {
+function syncFields(fields) {
+  els.fields.forEach((input) => {
     const key = input.dataset.field;
-    const value = values[key] || "";
+    const value = fields[key] || "";
     if (input.value !== value) {
       input.value = value;
     }
+  });
+}
+
+function describeStep(step, mode) {
+  if (mode === "timeline") {
+    if (step.dependencies && step.dependencies.length) {
+      return `This step comes after ${step.dependencies.join(", ")}.`;
+    }
+    return "This is an early step in your timeline.";
   }
+  if (mode === "explain") {
+    return step.description;
+  }
+  if (step.required_fields && step.required_fields.length) {
+    return `Required details: ${step.required_fields.map(humanFieldLabel).join(", ")}.`;
+  }
+  return step.description;
 }
 
-function humanMode(mode) {
-  return String(mode || "checklist")
+function humanFieldLabel(field) {
+  return FIELD_LABELS[field] || humanizeText(field);
+}
+
+function humanizeText(text) {
+  return String(text || "")
     .replaceAll("_", " ")
     .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
-function humanField(field) {
-  return FIELD_LABELS[field] || String(field || "")
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (m) => m.toUpperCase());
+function beautifyId(value) {
+  return String(value || "")
+    .split("_")
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(" ");
 }
 
 function friendlyReason(reason) {
   const text = String(reason || "");
-  if (text.includes("Completeness still low")) return "I still need a few details, so I kept this in a simple checklist.";
-  if (text.includes("Understanding dropped")) return "This looked confusing, so I switched to a clearer explanation view.";
-  if (text.includes("Escalation risk is high")) return "Some parts need advisor verification before proceeding.";
-  if (text.includes("Transition flow needs petition-state clarity")) return "I need petition details to safely continue this transition path.";
-  if (text.includes("Mode locked")) return "Keeping the view you selected.";
-  if (text.includes("No mode change needed")) return "Your current plan looks stable, so no view change was needed.";
-  return text || "Guidance updated from your latest inputs.";
+  if (text.includes("Mode locked")) {
+    return "Using your selected view.";
+  }
+  if (text.includes("Understanding dropped")) {
+    return "This looked confusing, so the plan switched to a clearer format.";
+  }
+  if (text.includes("Completeness still low")) {
+    return "Still waiting on a few details, so we stayed in checklist mode.";
+  }
+  if (text.includes("Transition flow needs petition-state clarity")) {
+    return "Petition details are needed before this transition can be finalized.";
+  }
+  if (text.includes("Escalation risk is high")) {
+    return "This case needs advisor verification before moving forward.";
+  }
+  if (!text) {
+    return "Plan updated based on your latest input.";
+  }
+  return text;
 }
