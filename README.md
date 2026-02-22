@@ -149,7 +149,7 @@ python3 scripts/build_uscis_kb.py
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Open: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+Open on your device: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
 ## Demo Walkthrough
 1. Open Input tab and choose a quick-start scenario (or type a custom case).
